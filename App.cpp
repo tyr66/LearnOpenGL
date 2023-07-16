@@ -1,14 +1,24 @@
 #include <iostream>
+#include <cmath>
 #include <fstream>
 #include <stdexcept>
 #include <glad/glad.h>
+#include <memory>
+
 #include "GLFW/glfw3.h"
 #include "App.h"
+#include "help.h"
+#include "Shader.h"
+#include "IndicesBuffer.h"
+#include "VertexBuffer.h"
+#include "VertexArray.h"
+
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
+
 
 App::App(int width, int height): _width(width), _height(height)
 {
@@ -20,15 +30,6 @@ App::~App()
     if (_window != nullptr) {
         glfwDestroyWindow(_window);
         glfwTerminate();
-    }
-
-    if (_initShader) {
-        glDeleteProgram(_shaderProgram);
-    }
-
-    if (_initBuffer) {
-        glDeleteBuffers(1,  &_VBO);
-        glDeleteVertexArrays(1, &_VAO);
     }
 
     glfwTerminate();
@@ -43,12 +44,36 @@ void App::init()
 
 void App::run()
 {
+    float pos[] = {
+        -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f,
+    };
+
+    unsigned int indices[] = {
+        0, 1, 2,
+    };
+
+    auto vbo = VertexBuffer::CreateVertexBuffer((void*)pos, sizeof(pos));
+    auto ebo = IndiceBuffer::CreateIndiceBuffer(indices, sizeof(indices) / sizeof(unsigned int));
+    auto vao = VertexArray::CreateVertexArray();
+    auto shader = Shader::CreateShader("../vert.shader", "../frag.shader");
+
+    VertexBufferLayout layout;
+    layout.push<float>(2);
+    layout.push<float>(4);
+    vao->AddBuffer(*vbo.get(), layout);
+    
+    shader->Bind();
+    vao->Bind();
+    ebo->Bind();
 
     while(!glfwWindowShouldClose(_window))
     {
-        glClear(GL_COLOR_BUFFER_BIT);
+        GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
+        GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        GLCall(glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0));
 
         processInput();
 
@@ -85,94 +110,11 @@ void App::initGlfw()
 }
 void App::initBuffer()
 {
-    float pos[] = {
-        -0.5f, -0.5f,
-        0.0f, 0.5f,
-        0.5f, -0.5f
-    };
 
-    glGenVertexArrays(1, &_VAO);
-    glGenBuffers(1, &_VBO);
-
-    glBindVertexArray(_VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, _VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(pos), pos, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
-    _initBuffer = true;
-
-}
-
-std::vector<char> App::readFile(const char* filePath)
-{
-    std::vector<char> res;
-    std::ifstream file(filePath, std::ios_base::ate);
-    std::string msg;
-
-    if (!file.is_open()) {
-        msg += "faile to read file , path = "; msg += filePath;
-        throw std::runtime_error(msg);
-    }
-
-    size_t fileSz = file.tellg();
-    file.seekg(std::ios_base::beg);
-    res.resize(fileSz);
-
-    file.read(res.data(), fileSz);
-    return res;
-}
-unsigned int App::compileShader(unsigned int shaderType, const char* filePath){
-
-    char* logInfo;
-    unsigned int shader;
-    auto shaderSource = readFile(filePath);
-    // std::cout << "read file " << std::endl << shaderSource.data() << std::endl;
-    const char* source = shaderSource.data();
-    shader = glCreateShader(shaderType);
-    glShaderSource(shader, 1, &source, nullptr);
-    glCompileShader(shader);
-
-    int successed;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &successed);
-
-    if (!successed) {
-        int length;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-        logInfo = (char*)alloca(length * sizeof(char));
-        glGetShaderInfoLog(shader, length, &length, logInfo);
-        throw std::runtime_error(logInfo);
-    }
-
-    return shader;
 }
 
 void App::initShader()
 {
-    char* infoLog;
-    unsigned int vertShader = compileShader(GL_VERTEX_SHADER, "../vert.shader");
-    unsigned int fragShader = compileShader(GL_FRAGMENT_SHADER, "../frag.shader");
-    _shaderProgram = glCreateProgram();
-    glAttachShader(_shaderProgram, vertShader);
-    glAttachShader(_shaderProgram, fragShader);
-    glLinkProgram(_shaderProgram);
-
-    int successed;
-    glGetProgramiv(_shaderProgram, GL_LINK_STATUS, &successed);
-    if (!successed) {
-        int length;
-        glGetProgramiv(_shaderProgram, GL_INFO_LOG_LENGTH, &length);
-        infoLog = (char*)alloca(length * sizeof(char));
-        glGetProgramInfoLog(_shaderProgram, length, &length, infoLog);
-        throw std::runtime_error(infoLog);
-    }
-
-    glUseProgram(_shaderProgram);
-    glDeleteShader(vertShader);
-    glDeleteShader(fragShader);
-    _initShader = true;
 }
 
 void App::processInput()

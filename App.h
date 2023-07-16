@@ -1,3 +1,5 @@
+#pragma  once
+
 #include <vector>
 
 struct GLFWwindow;
@@ -10,11 +12,7 @@ public:
     ~App();
 private:
     void initGlfw();
-
     void initBuffer();
-
-    std::vector<char> readFile(const char* filePath);
-    unsigned int compileShader(unsigned int shaderType, const char* filePath);
     void initShader();
     void processInput();
 
@@ -25,6 +23,7 @@ private:
     unsigned int _shaderProgram{0};
     unsigned int _VBO;
     unsigned int _VAO;
+    unsigned int _EBO;
     bool _initBuffer{false};
     bool _initShader{false};
 };
