@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <glad/glad.h>
 #include <memory>
+#include <stb_image.h>
 
 #include "GLFW/glfw3.h"
 #include "App.h"
@@ -12,6 +13,7 @@
 #include "IndicesBuffer.h"
 #include "VertexBuffer.h"
 #include "VertexArray.h"
+#include "Texture.h"
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -40,18 +42,23 @@ void App::init()
     initGlfw();
     initShader();
     initBuffer();
+
+    stbi_set_flip_vertically_on_load(true);
 }
 
 void App::run()
 {
     float pos[] = {
-        -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f,
+// positions          // colors           // texture coords
+     0.5f,  0.5f,  1.0f, 0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // top right
+     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 1.0f,  1.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f, 0.0f,   // bottom left
+    -0.5f,  0.5f,  1.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f    // top left 
     };
 
     unsigned int indices[] = {
-        0, 1, 2,
+        0, 1, 3,
+        1, 2, 3,
     };
 
     auto vbo = VertexBuffer::CreateVertexBuffer((void*)pos, sizeof(pos));
@@ -62,18 +69,33 @@ void App::run()
     VertexBufferLayout layout;
     layout.push<float>(2);
     layout.push<float>(4);
+    layout.push<float>(2);
     vao->AddBuffer(*vbo.get(), layout);
     
-    shader->Bind();
+    auto texture1 = Texture::CreateTexture("../textures/container.jpg", GL_TEXTURE_2D, GL_RGB);
+    texture1->SetWrapping(GL_REPEAT, GL_REPEAT);
+    texture1->SetFiltering(GL_LINEAR, GL_LINEAR);
+
+    auto texture2 = Texture::CreateTexture("../textures/awesomeface.png", GL_TEXTURE_2D, GL_RGBA);
+    texture2->SetWrapping(GL_REPEAT, GL_REPEAT);
+    texture2->SetFiltering(GL_LINEAR, GL_LINEAR);
+
     vao->Bind();
     ebo->Bind();
+    shader->Bind();
+    shader->SetInt("texture1", 0);
+    shader->SetInt("texture2", 1);
+
+    texture2->BindAndActive(GL_TEXTURE1);
+    texture1->BindAndActive(GL_TEXTURE0);
 
     while(!glfwWindowShouldClose(_window))
     {
         GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        GLCall(glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0));
+
+        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 
         processInput();
 

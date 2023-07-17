@@ -35,12 +35,11 @@ static unsigned int compileShader(unsigned int shaderType, const char* filePath)
     char* logInfo;
     unsigned int shader;
     auto shaderSource = readFile(filePath);
-    // std::cout << "read file " << std::endl << shaderSource.data() << std::endl;
     const char* source = shaderSource.data();
     shader = GLCall(glCreateShader(shaderType));
     GLCall(glShaderSource(shader, 1, &source, nullptr));
     GLCall(glCompileShader(shader));
-
+    // std::cout << "read file " << std::endl << shaderSource.data() << std::endl;
     int successed;
     GLCall(glGetShaderiv(shader, GL_COMPILE_STATUS, &successed));
 
@@ -49,6 +48,7 @@ static unsigned int compileShader(unsigned int shaderType, const char* filePath)
         GLCall(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length));
         logInfo = (char*)alloca(length * sizeof(char));
         GLCall(glGetShaderInfoLog(shader, length, &length, logInfo));
+        std::cout << logInfo << std::endl;
         throw std::runtime_error(logInfo);
     }
 
@@ -73,13 +73,13 @@ std::unique_ptr<Shader> Shader::CreateShader(const char* vertShaderPath, const c
     try{
         vertexShader = compileShader(GL_VERTEX_SHADER, vertShaderPath);
         fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragShaderPath);
+        // std::cout << "compileShader\n";
 
         shaderID = GLCall(glCreateProgram());
 
         GLCall(glAttachShader(shaderID, vertexShader));
         GLCall(glAttachShader(shaderID, fragmentShader));
         glLinkProgram(shaderID);
-
         int successed;
         GLCall(glGetProgramiv(shaderID, GL_LINK_STATUS, &successed));
         if (!successed) {
@@ -113,3 +113,11 @@ void Shader::Unbind()
 {
     GLCall(glUseProgram(0));
 }
+
+void Shader::SetInt(const char* name, int value)
+{
+    auto location = GLCall(glGetUniformLocation(_renderID, name));
+    GLCall(glUniform1i(location, value));
+}
+
+
