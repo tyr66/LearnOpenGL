@@ -50,10 +50,10 @@ void App::run()
 {
     float pos[] = {
 // positions          // colors           // texture coords
-     0.5f,  0.5f,  1.0f, 0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // top right
-     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 1.0f,  1.0f, 0.0f,   // bottom right
+     0.5f,  0.5f,  1.0f, 0.0f, 0.0f, 1.0f,   2.0f, 2.0f,   // top right
+     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 1.0f,  2.0f, 0.0f,   // bottom right
     -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f, 0.0f,   // bottom left
-    -0.5f,  0.5f,  1.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f    // top left 
+    -0.5f,  0.5f,  1.0f, 1.0f, 0.0f, 1.0f,  0.0f, 2.0f    // top left 
     };
 
     unsigned int indices[] = {
@@ -73,7 +73,7 @@ void App::run()
     vao->AddBuffer(*vbo.get(), layout);
     
     auto texture1 = Texture::CreateTexture("../textures/container.jpg", GL_TEXTURE_2D, GL_RGB);
-    texture1->SetWrapping(GL_REPEAT, GL_REPEAT);
+    texture1->SetWrapping(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
     texture1->SetFiltering(GL_LINEAR, GL_LINEAR);
 
     auto texture2 = Texture::CreateTexture("../textures/awesomeface.png", GL_TEXTURE_2D, GL_RGBA);
