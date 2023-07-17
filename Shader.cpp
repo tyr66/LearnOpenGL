@@ -1,5 +1,4 @@
 #include <fstream>
-#include <string>
 
 #include "glad/glad.h"
 #include "help.h"
@@ -114,10 +113,56 @@ void Shader::Unbind()
     GLCall(glUseProgram(0));
 }
 
-void Shader::SetInt(const char* name, int value)
+void Shader::SetInt(std::string& name, int value)
 {
-    auto location = GLCall(glGetUniformLocation(_renderID, name));
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
     GLCall(glUniform1i(location, value));
 }
 
+void Shader::SetFloat(std::string& name, float value)
+{
 
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniform1f(location, value));
+}
+
+void Shader::SetInt(std::string&& name, int value)
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniform1i(location, value));
+}
+
+void Shader::SetFloat(std::string&& name, float value)
+{
+
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniform1f(location, value));
+}

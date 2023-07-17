@@ -50,10 +50,10 @@ void App::run()
 {
     float pos[] = {
 // positions          // colors           // texture coords
-     0.5f,  0.5f,  1.0f, 0.0f, 0.0f, 1.0f,   0.55f, 0.55f,   // top right
-     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 1.0f,  0.55f, 0.45f,   // bottom right
-    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 1.0f,  0.45f, 0.45f,   // bottom left
-    -0.5f,  0.5f,  1.0f, 1.0f, 0.0f, 1.0f,  0.45f, 0.55f    // top left 
+     0.5f,  0.5f,  1.0f, 0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // top right
+     0.5f, -0.5f,  0.0f, 1.0f, 0.0f, 1.0f,  1.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f, 0.0f,   // bottom left
+    -0.5f,  0.5f,  1.0f, 1.0f, 0.0f, 1.0f,  0.0f, 1.0f    // top left 
     };
 
     unsigned int indices[] = {
@@ -73,12 +73,12 @@ void App::run()
     vao->AddBuffer(*vbo.get(), layout);
     
     auto texture1 = Texture::CreateTexture("../textures/container.jpg", GL_TEXTURE_2D, GL_RGB);
-    texture1->SetWrapping(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-    texture1->SetFiltering(GL_NEAREST, GL_NEAREST);
+    texture1->SetWrapping(GL_REPEAT, GL_REPEAT);
+    texture1->SetFiltering(GL_LINEAR, GL_LINEAR);
 
     auto texture2 = Texture::CreateTexture("../textures/awesomeface.png", GL_TEXTURE_2D, GL_RGBA);
     texture2->SetWrapping(GL_REPEAT, GL_REPEAT);
-    texture2->SetFiltering(GL_NEAREST, GL_NEAREST);
+    texture2->SetFiltering(GL_LINEAR, GL_LINEAR);
 
     vao->Bind();
     ebo->Bind();
@@ -95,6 +95,9 @@ void App::run()
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
 
+        float time = glfwGetTime();
+        float fadev = (sin(time) + 1.0f) / 2.0f;
+        shader->SetFloat("fadeV", fadev);
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 
         processInput();
