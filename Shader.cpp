@@ -166,3 +166,31 @@ void Shader::SetFloat(std::string&& name, float value)
     }
     GLCall(glUniform1f(location, value));
 }
+
+
+void Shader::SetMat4f(std::string&name, const float* data)
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, data));
+}
+
+void Shader::SetMat4f(std::string&&name, const float*data)
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, data));
+}
+

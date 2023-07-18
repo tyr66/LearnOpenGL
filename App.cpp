@@ -5,6 +5,9 @@
 #include <glad/glad.h>
 #include <memory>
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "GLFW/glfw3.h"
 #include "App.h"
@@ -89,15 +92,21 @@ void App::run()
     texture2->BindAndActive(GL_TEXTURE1);
     texture1->BindAndActive(GL_TEXTURE0);
 
+
     while(!glfwWindowShouldClose(_window))
     {
         GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-
         float time = glfwGetTime();
         float fadev = (sin(time) + 1.0f) / 2.0f;
         shader->SetFloat("fadeV", fadev);
+
+        glm::mat4 trans = glm::mat4(1.0f);
+        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        shader->SetMat4f("transform", glm::value_ptr(trans));
+
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 
         processInput();
