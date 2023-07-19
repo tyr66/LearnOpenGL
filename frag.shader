@@ -1,6 +1,5 @@
 #version 330 core
 
-in vec4 ourColor;
 in vec2 texCoord;
 
 out vec4 FragColor;
@@ -11,7 +10,7 @@ uniform float fadeV;
 
 void main()
 {
-    FragColor = mix(texture(texture1, texCoord), texture(texture2, texCoord), fadeV);
+    FragColor = mix(texture(texture1, texCoord), texture(texture2, texCoord), 0.2);
     //FragColor = texture(texture1, texCoord);
 }
 
