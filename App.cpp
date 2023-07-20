@@ -20,6 +20,7 @@
 #include "Texture.h"
 #include "Input.h"
 #include "Camera.h"
+#include "GeometryGenerator.h"
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -53,96 +54,51 @@ void App::init()
 
 void App::run()
 {
-    float pos[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f,  3.0f, -7.5f),  
-        glm::vec3( 1.3f, -2.0f, -2.5f),  
-        glm::vec3( 1.5f,  2.0f, -2.5f), 
-        glm::vec3( 1.5f,  0.2f, -1.5f), 
-        glm::vec3(-1.3f,  1.0f, -1.5f)  
-    };
+    std::vector<float> verts;
+    std::vector<unsigned int> indices;
+    GeometryGenerator::generateCube(verts, indices, 1.0f, 1.0f, 1.0f);
 
     Camera camera;
-    auto vbo = VertexBuffer::CreateVertexBuffer((void*)pos, sizeof(pos));
-    auto vao = VertexArray::CreateVertexArray();
-    auto shader = Shader::CreateShader("../vert.shader", "../frag.shader");
 
-    VertexBufferLayout layout;
-    layout.push<float>(3);
-    layout.push<float>(2);
-    vao->AddBuffer(*vbo.get(), layout);
+    auto objVbo = VertexBuffer::CreateVertexBuffer((void*)verts.data(), sizeof(float) * verts.size());
+    auto objvao = VertexArray::CreateVertexArray();
+    auto objEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
+    auto objShader = Shader::CreateShader("../shaders/vert.shader", "../shaders/frag.shader");
+
+    auto lightVbo = VertexBuffer::CreateVertexBuffer((void*)verts.data(), sizeof(float) * verts.size());
+    auto lightvao = VertexArray::CreateVertexArray();
+    auto lightEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
+    auto lightShader = Shader::CreateShader("../shaders/lightvert.shader", "../shaders/lightfrag.shader");
+
+    VertexBufferLayout objLayout;
+    objLayout.push<float>(3);
+    objvao->AddBuffer(*objVbo.get(), objLayout);
+
+    VertexBufferLayout lightLayout;
+    lightLayout.push<float>(3);
+    lightvao->AddBuffer(*lightVbo.get(), lightLayout);
     
-    auto texture1 = Texture::CreateTexture("../textures/container.jpg", GL_TEXTURE_2D, GL_RGB);
-    texture1->SetWrapping(GL_REPEAT, GL_REPEAT);
-    texture1->SetFiltering(GL_LINEAR, GL_LINEAR);
 
-    auto texture2 = Texture::CreateTexture("../textures/awesomeface.png", GL_TEXTURE_2D, GL_RGBA);
-    texture2->SetWrapping(GL_REPEAT, GL_REPEAT);
-    texture2->SetFiltering(GL_LINEAR, GL_LINEAR);
+    glm::vec3 lightColor = glm::vec3(0.5f, 1.0f, 0.3f);
+    glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
-    vao->Bind();
-    shader->Bind();
-    shader->SetInt("texture1", 0);
-    shader->SetInt("texture2", 1);
+    objShader->Bind();
+    objShader->SetVec3f("lightColor", lightColor.x, lightColor.y, lightColor.z);
+    objShader->SetVec3f("objColor", objColor.x, objColor.y, objColor.z);
 
-    texture2->BindAndActive(GL_TEXTURE1);
-    texture1->BindAndActive(GL_TEXTURE0);
+    glm::vec3 lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
+    lightShader->Bind();
+    lightShader->SetVec3f("lightColor", lightColor.x, lightColor.y, lightColor.z);
 
     // 设置变换矩阵
-    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 objModel = glm::mat4(1.0f);
+    glm::mat4 lightModel = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 proj = glm::mat4(1.0f);
 
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 100.0f);
+
 
 
     while(!glfwWindowShouldClose(_window))
@@ -158,20 +114,27 @@ void App::run()
         proj = camera.GetProjMat4(_width, _height);
         view = camera.GetViewMat4();
 
-        shader->SetMat4f("view", glm::value_ptr(view));
-        shader->SetMat4f("proj", glm::value_ptr(proj));
+        objModel = glm::mat4(1.0f);
+        objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
+        objShader->Bind();
+        objvao->Bind();
+        objEbo->Bind();
+        objShader->SetMat4f("view", glm::value_ptr(view));
+        objShader->SetMat4f("proj", glm::value_ptr(proj));
+        objShader->SetMat4f("model", glm::value_ptr(objModel));
+        GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
 
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i; 
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            shader->SetMat4f("model", glm::value_ptr(model));
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-
+        lightModel = glm::mat4(1.0f);
+        lightModel = glm::translate(lightModel, lightPos);
+        lightModel = glm::scale(lightModel, glm::vec3(0.1f, 0.1f, 0.1f));
+        lightvao->Bind();
+        lightShader->Bind();
+        lightEbo->Bind();
+        lightShader->SetMat4f("view", glm::value_ptr(view));
+        lightShader->SetMat4f("proj", glm::value_ptr(proj));
+        lightShader->SetMat4f("model", glm::value_ptr(lightModel));
+        GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
 
         processInput();
 

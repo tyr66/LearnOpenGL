@@ -19,6 +19,8 @@ public:
     void SetFloat(std::string&& name, float value);
     void SetMat4f(std::string& name, const float* data);
     void SetMat4f(std::string&& name, const float* data);
+    void SetVec3f(std::string& name, float x, float y, float z);
+    void SetVec3f(std::string&& name, float x, float y, float z);
     ~Shader();
 private:
     unsigned int _renderID{0};

@@ -194,3 +194,28 @@ void Shader::SetMat4f(std::string&&name, const float*data)
     GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, data));
 }
 
+void Shader::SetVec3f(std::string& name, float x, float y, float z)
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniform3f(location, x, y, z));
+}
+
+void Shader::SetVec3f(std::string&& name, float x, float y, float z)
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+    GLCall(glUniform3f(location, x, y, z));
+}
