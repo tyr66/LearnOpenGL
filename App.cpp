@@ -2,6 +2,7 @@
 #include <cmath>
 #include <fstream>
 #include <stdexcept>
+#include <functional>
 #include <glad/glad.h>
 #include <memory>
 #include <stb_image.h>
@@ -17,6 +18,8 @@
 #include "VertexBuffer.h"
 #include "VertexArray.h"
 #include "Texture.h"
+#include "Input.h"
+#include "Camera.h"
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -27,7 +30,6 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 
 App::App(int width, int height): _width(width), _height(height)
 {
-
 }
 
 App::~App()
@@ -108,7 +110,7 @@ void App::run()
         glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
 
-
+    Camera camera;
     auto vbo = VertexBuffer::CreateVertexBuffer((void*)pos, sizeof(pos));
     auto vao = VertexArray::CreateVertexArray();
     auto shader = Shader::CreateShader("../vert.shader", "../frag.shader");
@@ -142,14 +144,22 @@ void App::run()
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 100.0f);
 
-    shader->SetMat4f("view", glm::value_ptr(view));
-    shader->SetMat4f("proj", glm::value_ptr(proj));
 
     while(!glfwWindowShouldClose(_window))
     {
         GLCall(glEnable(GL_DEPTH_TEST));
         GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
         GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+        camera.UpdateCameraFront(Input::getXMouse(), Input::getYMouse());
+        camera.UpdateCameraFov(Input::getXoffset(), Input::getYoffste());
+        camera.UpdateCameraPos();
+
+        proj = camera.GetProjMat4(_width, _height);
+        view = camera.GetViewMat4();
+
+        shader->SetMat4f("view", glm::value_ptr(view));
+        shader->SetMat4f("proj", glm::value_ptr(proj));
 
         for (unsigned int i = 0; i < 10; i++)
         {
@@ -165,6 +175,7 @@ void App::run()
 
         processInput();
 
+        Input::Reset();
         glfwPollEvents();
         glfwSwapBuffers(_window);
     }
@@ -172,7 +183,6 @@ void App::run()
 
 void App::initGlfw()
 {
-
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("failed to init glfw library");
     }
@@ -189,13 +199,18 @@ void App::initGlfw()
 
     glfwMakeContextCurrent(_window);
     glfwSetFramebufferSizeCallback(_window, framebufferSizeCallback);
+    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         throw std::runtime_error("failed to init GLAD");
     }
 
+    Input::Init(_window);
+
     std::cout << "init glfw successed" << std::endl;
 }
+
+
 void App::initBuffer()
 {
 

@@ -1,6 +1,7 @@
 #pragma  once
 
 #include <vector>
+#include "Camera.h"
 
 struct GLFWwindow;
 
@@ -16,14 +17,14 @@ private:
     void initShader();
     void processInput();
 
+
 private:
     int _width;
     int _height;
+    Camera _camera;
     GLFWwindow* _window{nullptr};
-    unsigned int _shaderProgram{0};
-    unsigned int _VBO;
-    unsigned int _VAO;
-    unsigned int _EBO;
-    bool _initBuffer{false};
-    bool _initShader{false};
+    float _xMouse;
+    float _yMouse;
+    float _xOffset;
+    float _yOffset;
 };

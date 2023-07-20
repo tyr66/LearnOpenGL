@@ -1,6 +1,5 @@
 #include <iostream>
 #include "App.h"
-#include "App.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600; 
