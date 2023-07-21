@@ -20,12 +20,12 @@ static std::vector<char> readFile(const char* filePath)
         file.seekg(std::ios_base::beg);
         res.resize(fileSz);
         file.read(res.data(), fileSz);
-
     } catch(std::ifstream::failure e) {
         msg += "faile to read file , path = "; msg += filePath;
-        std::runtime_error(e.what());
+        std::cout << msg << std::endl;
+        throw e;
     }
-
+    std::cout << "read file " << std::endl << res.data() << std::endl;
     return res;
 }
 
@@ -38,7 +38,6 @@ static unsigned int compileShader(unsigned int shaderType, const char* filePath)
     shader = GLCall(glCreateShader(shaderType));
     GLCall(glShaderSource(shader, 1, &source, nullptr));
     GLCall(glCompileShader(shader));
-    // std::cout << "read file " << std::endl << shaderSource.data() << std::endl;
     int successed;
     GLCall(glGetShaderiv(shader, GL_COMPILE_STATUS, &successed));
 
@@ -72,8 +71,7 @@ std::unique_ptr<Shader> Shader::CreateShader(const char* vertShaderPath, const c
     try{
         vertexShader = compileShader(GL_VERTEX_SHADER, vertShaderPath);
         fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragShaderPath);
-        // std::cout << "compileShader\n";
-
+    std::cout << "passed" << std::endl;
         shaderID = GLCall(glCreateProgram());
 
         GLCall(glAttachShader(shaderID, vertexShader));
@@ -94,6 +92,7 @@ std::unique_ptr<Shader> Shader::CreateShader(const char* vertShaderPath, const c
             GLCall(glDeleteShader(vertexShader));
         if (fragmentShader != 0)
             GLCall(glDeleteShader(fragmentShader));
+        std::cout << e.what() << std::endl;
         throw e;
     }
 

@@ -60,6 +60,7 @@ void App::run()
 
     Camera camera;
 
+    std::cout << "test1" << std::endl;
     auto objVbo = VertexBuffer::CreateVertexBuffer((void*)verts.data(), sizeof(float) * verts.size());
     auto objvao = VertexArray::CreateVertexArray();
     auto objEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
@@ -70,11 +71,14 @@ void App::run()
     auto lightEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
     auto lightShader = Shader::CreateShader("../shaders/lightvert.shader", "../shaders/lightfrag.shader");
 
+
     VertexBufferLayout objLayout;
+    objLayout.push<float>(3);
     objLayout.push<float>(3);
     objvao->AddBuffer(*objVbo.get(), objLayout);
 
     VertexBufferLayout lightLayout;
+    lightLayout.push<float>(3);
     lightLayout.push<float>(3);
     lightvao->AddBuffer(*lightVbo.get(), lightLayout);
     
