@@ -10,6 +10,8 @@ public:
     void UpdateCameraFront(double mouseX, double mouseY);
     void UpdateCameraPos();
     void UpdateCameraFov(double xOffset, double yOffset);
+
+    glm::vec3 GetPos(){return _pos;}
     glm::mat4 GetViewMat4();
     glm::mat4 GetProjMat4(float w, float h);
 private:

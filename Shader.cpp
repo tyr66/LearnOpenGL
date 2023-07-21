@@ -1,32 +1,44 @@
 #include <fstream>
+#include <sstream>
 
 #include "glad/glad.h"
 #include "help.h"
 #include "Shader.h"
 
 
-static std::vector<char> readFile(const char* filePath)
+static std::string readFile(const char* filePath)
 {
-    std::vector<char> res;
+    std::stringstream ss;
     std::ifstream file;
     std::string msg;
+    size_t fileSz;
+    std::string line;
 
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    file.exceptions(std::ifstream::badbit);
 
     try
     {
         file.open(filePath, std::ios_base::ate);
-        size_t fileSz = file.tellg();
+        fileSz = file.tellg();
         file.seekg(std::ios_base::beg);
-        res.resize(fileSz);
-        file.read(res.data(), fileSz);
+        
+        while (std::getline(file, line)) {
+            ss << line << '\n';
+        }
+
+        file.close();
+
     } catch(std::ifstream::failure e) {
-        msg += "faile to read file , path = "; msg += filePath;
-        std::cout << msg << std::endl;
+
+        if (!file.is_open()) 
+            file.close();
+
+        std::cout << "read file " << std::endl << ss.str() << std::endl;
         throw e;
     }
-    std::cout << "read file " << std::endl << res.data() << std::endl;
-    return res;
+
+    // std::cout << "read file " << std::endl << ss.str() << std::endl;
+    return ss.str();
 }
 
 static unsigned int compileShader(unsigned int shaderType, const char* filePath){
@@ -34,7 +46,7 @@ static unsigned int compileShader(unsigned int shaderType, const char* filePath)
     char* logInfo;
     unsigned int shader;
     auto shaderSource = readFile(filePath);
-    const char* source = shaderSource.data();
+    const char* source = shaderSource.c_str();
     shader = GLCall(glCreateShader(shaderType));
     GLCall(glShaderSource(shader, 1, &source, nullptr));
     GLCall(glCompileShader(shader));
@@ -69,9 +81,9 @@ std::unique_ptr<Shader> Shader::CreateShader(const char* vertShaderPath, const c
     unsigned int vertexShader = 0, fragmentShader = 0;
 
     try{
+
         vertexShader = compileShader(GL_VERTEX_SHADER, vertShaderPath);
         fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragShaderPath);
-    std::cout << "passed" << std::endl;
         shaderID = GLCall(glCreateProgram());
 
         GLCall(glAttachShader(shaderID, vertexShader));

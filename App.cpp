@@ -60,7 +60,6 @@ void App::run()
 
     Camera camera;
 
-    std::cout << "test1" << std::endl;
     auto objVbo = VertexBuffer::CreateVertexBuffer((void*)verts.data(), sizeof(float) * verts.size());
     auto objvao = VertexArray::CreateVertexArray();
     auto objEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
@@ -83,7 +82,7 @@ void App::run()
     lightvao->AddBuffer(*lightVbo.get(), lightLayout);
     
 
-    glm::vec3 lightColor = glm::vec3(0.5f, 1.0f, 0.3f);
+    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
     objShader->Bind();
@@ -108,7 +107,7 @@ void App::run()
     while(!glfwWindowShouldClose(_window))
     {
         GLCall(glEnable(GL_DEPTH_TEST));
-        GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
+        // GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
         GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
         camera.UpdateCameraFront(Input::getXMouse(), Input::getYMouse());
@@ -117,6 +116,7 @@ void App::run()
 
         proj = camera.GetProjMat4(_width, _height);
         view = camera.GetViewMat4();
+        glm::vec3 viewPos = camera.GetPos();
 
         objModel = glm::mat4(1.0f);
         objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
@@ -126,9 +126,12 @@ void App::run()
         objShader->SetMat4f("view", glm::value_ptr(view));
         objShader->SetMat4f("proj", glm::value_ptr(proj));
         objShader->SetMat4f("model", glm::value_ptr(objModel));
+        objShader->SetVec3f("lightPos", lightPos.x, lightPos.y, lightPos.z);
+        objShader->SetVec3f("viewPos", viewPos.x, viewPos.y, viewPos.z);
         GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
 
 
+        // 绘制灯光物体
         lightModel = glm::mat4(1.0f);
         lightModel = glm::translate(lightModel, lightPos);
         lightModel = glm::scale(lightModel, glm::vec3(0.1f, 0.1f, 0.1f));
