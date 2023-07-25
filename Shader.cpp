@@ -1,9 +1,11 @@
 #include <fstream>
 #include <sstream>
 
+
 #include "glad/glad.h"
 #include "help.h"
 #include "Shader.h"
+#include "light.h"
 
 
 static std::string readFile(const char* filePath)
@@ -205,7 +207,7 @@ void Shader::SetMat4f(std::string&&name, const float*data)
     GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, data));
 }
 
-void Shader::SetVec3f(std::string& name, float x, float y, float z)
+void Shader::SetVec3f(std::string& name, const glm::vec3& v)
 {
     int location;
     if (_uniformLocation.find(name) == _uniformLocation.end()) {
@@ -215,10 +217,10 @@ void Shader::SetVec3f(std::string& name, float x, float y, float z)
     else {
         location = _uniformLocation[name];
     }
-    GLCall(glUniform3f(location, x, y, z));
+    GLCall(glUniform3f(location, v.x, v.y, v.z));
 }
 
-void Shader::SetVec3f(std::string&& name, float x, float y, float z)
+void Shader::SetVec3f(std::string&& name, const glm::vec3& v)
 {
     int location;
     if (_uniformLocation.find(name) == _uniformLocation.end()) {
@@ -228,5 +230,6 @@ void Shader::SetVec3f(std::string&& name, float x, float y, float z)
     else {
         location = _uniformLocation[name];
     }
-    GLCall(glUniform3f(location, x, y, z));
+    GLCall(glUniform3f(location, v.x, v.y, v.z));
 }
+

@@ -21,6 +21,7 @@
 #include "Input.h"
 #include "Camera.h"
 #include "GeometryGenerator.h"
+#include "light.h"
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -81,17 +82,18 @@ void App::run()
     lightLayout.push<float>(3);
     lightvao->AddBuffer(*lightVbo.get(), lightLayout);
     
+    Light light;
+    light.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
 
-    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
     objShader->Bind();
-    objShader->SetVec3f("lightColor", lightColor.x, lightColor.y, lightColor.z);
-    objShader->SetVec3f("objColor", objColor.x, objColor.y, objColor.z);
+    objShader->SetVec3f("lightColor", light.lightColor);
+    objShader->SetVec3f("objColor", objColor);
 
-    glm::vec3 lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
     lightShader->Bind();
-    lightShader->SetVec3f("lightColor", lightColor.x, lightColor.y, lightColor.z);
+    lightShader->SetVec3f("lightColor", light.lightColor);
 
     // 设置变换矩阵
     glm::mat4 objModel = glm::mat4(1.0f);
@@ -102,7 +104,11 @@ void App::run()
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 100.0f);
 
-
+    Material material;
+    material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
+    material.diffuse = glm::vec3(1.0f, 0.5f, 0.31f);
+    material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
+    material.shiness = 32.0f;
 
     while(!glfwWindowShouldClose(_window))
     {
@@ -118,8 +124,13 @@ void App::run()
         view = camera.GetViewMat4();
         glm::vec3 viewPos = camera.GetPos();
 
-        // lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
-        // lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
+        light.lightColor.x = sin(glfwGetTime() * 2.0f);
+        light.lightColor.y = sin(glfwGetTime() * 0.7f);
+        light.lightColor.z = sin(glfwGetTime() * 1.3f);
+
+        light.diffuse = light.lightColor * glm::vec3(0.5f);
+        light.ambient = light.diffuse * glm::vec3(0.2f);
+        light.specular = glm::vec3(1.0f);
 
         objModel = glm::mat4(1.0f);
         objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
@@ -129,14 +140,25 @@ void App::run()
         objShader->SetMat4f("view", glm::value_ptr(view));
         objShader->SetMat4f("proj", glm::value_ptr(proj));
         objShader->SetMat4f("model", glm::value_ptr(objModel));
-        objShader->SetVec3f("lightPos", lightPos.x, lightPos.y, lightPos.z);
-        objShader->SetVec3f("viewPos", viewPos.x, viewPos.y, viewPos.z);
+        objShader->SetVec3f("lightPos", light.lightPos);
+        objShader->SetVec3f("viewPos", viewPos);
+
+        objShader->SetVec3f("light.lightPos", light.lightPos);
+        objShader->SetVec3f("light.ambient", light.ambient);
+        objShader->SetVec3f("light.diffuse", light.diffuse);
+        objShader->SetVec3f("light.specular", light.specular);
+
+        objShader->SetFloat("material.shiness", material.shiness);
+        objShader->SetVec3f("material.ambient", material.ambient);
+        objShader->SetVec3f("material.diffuse", material.diffuse);
+        objShader->SetVec3f("material.specular", material.specular);
+
         GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
 
 
         // 绘制灯光物体
         lightModel = glm::mat4(1.0f);
-        lightModel = glm::translate(lightModel, lightPos);
+        lightModel = glm::translate(lightModel, light.lightPos);
         lightModel = glm::scale(lightModel, glm::vec3(0.1f, 0.1f, 0.1f));
         lightvao->Bind();
         lightShader->Bind();
@@ -144,6 +166,8 @@ void App::run()
         lightShader->SetMat4f("view", glm::value_ptr(view));
         lightShader->SetMat4f("proj", glm::value_ptr(proj));
         lightShader->SetMat4f("model", glm::value_ptr(lightModel));
+
+        lightShader->SetVec3f("lightColor", light.lightColor);
         GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
 
         processInput();

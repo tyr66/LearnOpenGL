@@ -5,6 +5,11 @@
 #include <memory>
 #include <unordered_map>
 
+#include "glm/glm.hpp"
+
+struct Light;
+struct Material;
+
 class Shader {
 
 private:
@@ -19,8 +24,13 @@ public:
     void SetFloat(std::string&& name, float value);
     void SetMat4f(std::string& name, const float* data);
     void SetMat4f(std::string&& name, const float* data);
-    void SetVec3f(std::string& name, float x, float y, float z);
-    void SetVec3f(std::string&& name, float x, float y, float z);
+    void SetVec3f(std::string& name, const glm::vec3& v);
+    void SetVec3f(std::string&& name, const glm::vec3& v);
+    /* 
+    void SetLight(std::string& name, const Light& light);
+    void SetLight(std::string&& name, const Light& light);
+    void SetMaterial(std::string& name, const Material& material);
+    void SetMaterial(std::string&& name, const Material& material); */
     ~Shader();
 private:
     unsigned int _renderID{0};
