@@ -118,6 +118,9 @@ void App::run()
         view = camera.GetViewMat4();
         glm::vec3 viewPos = camera.GetPos();
 
+        // lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
+        // lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
+
         objModel = glm::mat4(1.0f);
         objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
         objShader->Bind();
