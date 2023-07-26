@@ -233,3 +233,169 @@ void Shader::SetVec3f(std::string&& name, const glm::vec3& v)
     GLCall(glUniform3f(location, v.x, v.y, v.z));
 }
 
+void Shader::SetDirectionalLight(const DirectionalLight& light)
+{
+    std::string prefix = light.name + '.';
+
+    int location = getAndSetLocation(prefix + "lightDir");
+    GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
+
+    location = getAndSetLocation(prefix + "ambient");
+    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
+
+
+    location = getAndSetLocation(prefix + "diffuse");
+    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
+
+    location = getAndSetLocation(prefix + "specular");
+    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
+
+}
+void Shader::SetDirectionalLight(const DirectionalLight&& light)
+{
+    std::string prefix = light.name + '.';
+
+    int location = getAndSetLocation(prefix + "lightDir");
+    GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
+
+    location = getAndSetLocation(prefix + "ambient");
+    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
+
+
+    location = getAndSetLocation(prefix + "diffuse");
+    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
+
+    location = getAndSetLocation(prefix + "specular");
+    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
+
+}
+void Shader::SetSpotLight(const SpotLight& light)
+{
+    std::string prefix = light.name + '.';
+
+    int location = getAndSetLocation(prefix + "lightDir");
+    GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
+
+    location = getAndSetLocation(prefix + "lightPos");
+    GLCall(glUniform3f(location, light.lightPos.x, light.lightPos.y, light.lightPos.z));
+
+    location = getAndSetLocation(prefix + "ambient");
+    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
+
+
+    location = getAndSetLocation(prefix + "diffuse");
+    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
+
+    location = getAndSetLocation(prefix + "specular");
+    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
+
+
+    location = getAndSetLocation(prefix + "outerCutoff");
+    GLCall(glUniform1f(location, light.outerCutoff));
+
+
+    location = getAndSetLocation(prefix + "cutOff");
+    GLCall(glUniform1f(location, light.cutOff));
+
+    location = getAndSetLocation(prefix + "constant");
+    GLCall(glUniform1f(location, light.constant));
+
+    location = getAndSetLocation(prefix + "linear");
+    GLCall(glUniform1f(location, light.linear));
+
+    location = getAndSetLocation(prefix + "quadratic");
+    GLCall(glUniform1f(location, light.quadratic));
+}
+void Shader::SetSpotLight(const SpotLight&& light)
+{
+    std::string prefix = light.name + '.';
+
+    int location = getAndSetLocation(prefix + "lightDir");
+    GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
+
+    location = getAndSetLocation(prefix + "lightPos");
+    GLCall(glUniform3f(location, light.lightPos.x, light.lightPos.y, light.lightPos.z));
+
+    location = getAndSetLocation(prefix + "ambient");
+    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
+
+
+    location = getAndSetLocation(prefix + "diffuse");
+    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
+
+    location = getAndSetLocation(prefix + "specular");
+    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
+
+
+    location = getAndSetLocation(prefix + "outerCutoff");
+    GLCall(glUniform1f(location, light.outerCutoff));
+
+
+    location = getAndSetLocation(prefix + "cutOff");
+    GLCall(glUniform1f(location, light.cutOff));
+
+    location = getAndSetLocation(prefix + "constant");
+    GLCall(glUniform1f(location, light.constant));
+
+    location = getAndSetLocation(prefix + "linear");
+    GLCall(glUniform1f(location, light.linear));
+
+    location = getAndSetLocation(prefix + "quadratic");
+    GLCall(glUniform1f(location, light.quadratic));
+
+}
+void Shader::SetPointLight(const PointLight& light)
+{
+    std::string prefix = light.name + '.';
+
+    int location = getAndSetLocation(prefix + "lightPos");
+    GLCall(glUniform3f(location, light.lightPos.x, light.lightPos.y, light.lightPos.z));
+
+    location = getAndSetLocation(prefix + "ambient");
+    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
+
+
+    location = getAndSetLocation(prefix + "diffuse");
+    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
+
+    location = getAndSetLocation(prefix + "specular");
+    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
+
+    location = getAndSetLocation(prefix + "constant");
+    GLCall(glUniform1f(location, light.constant));
+
+    location = getAndSetLocation(prefix + "linear");
+    GLCall(glUniform1f(location, light.linear));
+
+    location = getAndSetLocation(prefix + "quadratic");
+    GLCall(glUniform1f(location, light.quadratic));
+}
+void SetPointLight(const PointLight&& light);
+
+int Shader::getAndSetLocation(const std::string& name) 
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+
+    return location;
+}
+
+int Shader::getAndSetLocation(const std::string&& name) 
+{
+    int location;
+    if (_uniformLocation.find(name) == _uniformLocation.end()) {
+        location = GLCall(glGetUniformLocation(_renderID, name.c_str()));
+        _uniformLocation[name] = location;
+    }
+    else {
+        location = _uniformLocation[name];
+    }
+
+    return location;
+}

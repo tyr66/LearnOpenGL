@@ -11,7 +11,8 @@ public:
     void UpdateCameraPos();
     void UpdateCameraFov(double xOffset, double yOffset);
 
-    glm::vec3 GetPos(){return _pos;}
+    glm::vec3 GetPos()const{return _pos;}
+    glm::vec3 GetFront()const{return _front;};
     glm::mat4 GetViewMat4();
     glm::mat4 GetProjMat4(float w, float h);
 private:

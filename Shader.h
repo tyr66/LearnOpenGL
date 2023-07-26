@@ -7,7 +7,10 @@
 
 #include "glm/glm.hpp"
 
-struct Light;
+struct DirectionalLight;
+struct SpotLight;
+struct PointLight;
+
 struct Material;
 
 class Shader {
@@ -31,7 +34,18 @@ public:
     void SetLight(std::string&& name, const Light& light);
     void SetMaterial(std::string& name, const Material& material);
     void SetMaterial(std::string&& name, const Material& material); */
+    void SetDirectionalLight(const DirectionalLight& light);
+    void SetDirectionalLight(const DirectionalLight&& light);
+    void SetSpotLight(const SpotLight& light);
+    void SetSpotLight(const SpotLight&& light);
+    void SetPointLight(const PointLight& light);
+    void SetPointLight(const PointLight&& light);
     ~Shader();
+
+private:
+    int getAndSetLocation(const std::string& name);
+    int getAndSetLocation(const std::string&& name);
+
 private:
     unsigned int _renderID{0};
     std::unordered_map<std::string, int> _uniformLocation;

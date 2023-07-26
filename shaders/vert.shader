@@ -16,8 +16,8 @@ out vec2 TexCoord;
 void main()
 {
     gl_Position = proj * view * model * vec4(pos.xyz, 1.0);
-    Normal = mat3( view * model) * normal;
-    Pos = vec3(view* model * pos);
+    Normal = mat3(model) * normal;
+    Pos = vec3(model * pos);
     TexCoord = texCoord;
 }
 

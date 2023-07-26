@@ -84,24 +84,36 @@ void App::run()
     objLayout.push<float>(2);
     objvao->AddBuffer(*objVbo.get(), objLayout);
 
-
     VertexBufferLayout lightLayout;
     lightLayout.push<float>(3);
     lightLayout.push<float>(3);
     lightLayout.push<float>(2);
     lightvao->AddBuffer(*lightVbo.get(), lightLayout);
     
-    Light light;
-    light.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
-    light.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
-    light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f);
-    light.specular = glm::vec3( 1.0f, 1.0f, 1.0f);
+glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+    // positions of the point lights
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3( 0.7f,  0.2f,  2.0f),
+        glm::vec3( 2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3( 0.0f,  0.0f, -3.0f)
+    };
+
 
     glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
     objShader->Bind();
-    objShader->SetVec3f("lightColor", light.lightColor);
     objShader->SetVec3f("objColor", objColor);
     objShader->SetInt("material.diffuse", 0);
     objShader->SetInt("material.specular", 1);
@@ -109,7 +121,6 @@ void App::run()
     specularTex->BindAndActive(GL_TEXTURE1);
 
     lightShader->Bind();
-    lightShader->SetVec3f("lightColor", light.lightColor);
 
     // 设置变换矩阵
     glm::mat4 objModel = glm::mat4(1.0f);
@@ -126,7 +137,38 @@ void App::run()
     material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
     material.shiness = 64.0f;
 
+    DirectionalLight dirLight;
+    dirLight.lightDir = glm::normalize(glm::vec3(-0.2f, -1.0f, -0.3f));
+    dirLight.ambient = glm::vec3(0.05f, 0.05f, 0.05f);
+    dirLight.diffuse = glm::vec3(0.4f, 0.4f, 0.4f);
+    dirLight.specular = glm::vec3(0.5f, 0.5f, 0.5f);
+    dirLight.name = "dirLight";
 
+    SpotLight spotLight;
+    spotLight.name = "spotLight";
+    spotLight.lightDir = glm::vec3(0.0f, 0.0f, -1.0f);
+    spotLight.lightPos = glm::vec3(0.0f);
+    spotLight.ambient = glm::vec3(0.0f, 0.0f, 0.0f);
+    spotLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    spotLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+    spotLight.cutOff = glm::cos(glm::radians(12.5f));
+    spotLight.outerCutoff = glm::cos(glm::radians(15.0f));
+    spotLight.constant = 1.0f;
+    spotLight.linear = 0.09f;
+    spotLight.quadratic = 0.032f;
+
+    PointLight pointLights[4];
+    for (int i = 0; i < 4; i++) {
+        pointLights[i].name = "pointLights[" + std::to_string(i) + ']';
+        pointLights[i].lightPos = pointLightPositions[i];
+        pointLights[i].ambient = glm::vec3(0.05f, 0.05f, 0.05f);
+        pointLights[i].diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
+        pointLights[i].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+        pointLights[i].constant = 1.0f;
+        pointLights[i].linear = 0.09f;
+        pointLights[i].quadratic = 0.032f;
+        // std::cout << pointLights[i].name << std::endl;
+    }
 
     while(!glfwWindowShouldClose(_window))
     {
@@ -142,13 +184,8 @@ void App::run()
         view = camera.GetViewMat4();
         glm::vec3 viewPos = camera.GetPos();
 
-        /* light.lightColor.x = sin(glfwGetTime() * 2.0f);
-        light.lightColor.y = sin(glfwGetTime() * 0.7f);
-        light.lightColor.z = sin(glfwGetTime() * 1.3f);
-
-        light.diffuse = light.lightColor * glm::vec3(0.5f);
-        light.ambient = light.diffuse * glm::vec3(0.2f);
-        light.specular = glm::vec3(1.0f); */
+        spotLight.lightPos = camera.GetPos();
+        spotLight.lightDir = -camera.GetFront();
 
         objModel = glm::mat4(1.0f);
         objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
@@ -157,35 +194,41 @@ void App::run()
         objEbo->Bind();
         objShader->SetMat4f("view", glm::value_ptr(view));
         objShader->SetMat4f("proj", glm::value_ptr(proj));
-        objShader->SetMat4f("model", glm::value_ptr(objModel));
-        objShader->SetVec3f("lightPos", light.lightPos);
         objShader->SetVec3f("viewPos", viewPos);
-
-    // std::cout << "test1" << std::endl;
-        objShader->SetVec3f("light.lightPos", light.lightPos);
-        objShader->SetVec3f("light.ambient", light.ambient);
-        objShader->SetVec3f("light.diffuse", light.diffuse);
-        objShader->SetVec3f("light.specular", light.specular);
-    // std::cout << "passed" << std::endl;
+        objShader->SetDirectionalLight(dirLight);
+        objShader->SetSpotLight(spotLight);
+        objShader->SetInt("pointLightCnt", 4);
+        for (int i = 0; i < 4; i++) {
+            objShader->SetPointLight(pointLights[i]);
+        }
 
         objShader->SetFloat("material.shiness", material.shiness);
 
-        GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
+        for (int i = 0; i < 10; i++)
+        {
+            objModel = glm::mat4(1.0f);
+            objModel = glm::translate(objModel,cubePositions[i]);
+            objModel = glm::rotate(objModel, glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
+            objShader->SetMat4f("model", glm::value_ptr(objModel));
+            GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
+        }
 
 
         // 绘制灯光物体
-        lightModel = glm::mat4(1.0f);
-        lightModel = glm::translate(lightModel, light.lightPos);
-        lightModel = glm::scale(lightModel, glm::vec3(0.1f, 0.1f, 0.1f));
         lightvao->Bind();
         lightShader->Bind();
         lightEbo->Bind();
         lightShader->SetMat4f("view", glm::value_ptr(view));
         lightShader->SetMat4f("proj", glm::value_ptr(proj));
-        lightShader->SetMat4f("model", glm::value_ptr(lightModel));
 
-        lightShader->SetVec3f("lightColor", light.lightColor);
-        GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
+        for (int i = 0; i < 4; i++)
+        {
+            lightModel = glm::mat4(1.0f);
+            lightModel = glm::translate(lightModel, pointLightPositions[i]);
+            lightModel = glm::scale(lightModel, glm::vec3(0.2f, 0.2f, 0.2f));
+            lightShader->SetMat4f("model", glm::value_ptr(lightModel));
+            GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
+        }
 
         processInput();
 
