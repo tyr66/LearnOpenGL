@@ -71,26 +71,42 @@ void App::run()
     auto lightEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
     auto lightShader = Shader::CreateShader("../shaders/lightvert.shader", "../shaders/lightfrag.shader");
 
+    auto diffuseTex = Texture::CreateTexture("../textures/container2.png", GL_TEXTURE_2D, GL_RGB);
+    diffuseTex->SetFiltering(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+    diffuseTex->SetWrapping(GL_REPEAT, GL_REPEAT);
+    auto specularTex = Texture::CreateTexture("../textures/container2_specular.png", GL_TEXTURE_2D, GL_RGB);
+    specularTex->SetFiltering(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+    specularTex->SetWrapping(GL_REPEAT, GL_REPEAT);
 
     VertexBufferLayout objLayout;
     objLayout.push<float>(3);
     objLayout.push<float>(3);
+    objLayout.push<float>(2);
     objvao->AddBuffer(*objVbo.get(), objLayout);
+
 
     VertexBufferLayout lightLayout;
     lightLayout.push<float>(3);
     lightLayout.push<float>(3);
+    lightLayout.push<float>(2);
     lightvao->AddBuffer(*lightVbo.get(), lightLayout);
     
     Light light;
     light.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     light.lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
+    light.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
+    light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f);
+    light.specular = glm::vec3( 1.0f, 1.0f, 1.0f);
 
     glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
     objShader->Bind();
     objShader->SetVec3f("lightColor", light.lightColor);
     objShader->SetVec3f("objColor", objColor);
+    objShader->SetInt("material.diffuse", 0);
+    objShader->SetInt("material.specular", 1);
+    diffuseTex->BindAndActive(GL_TEXTURE0);
+    specularTex->BindAndActive(GL_TEXTURE1);
 
     lightShader->Bind();
     lightShader->SetVec3f("lightColor", light.lightColor);
@@ -108,7 +124,9 @@ void App::run()
     material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
     material.diffuse = glm::vec3(1.0f, 0.5f, 0.31f);
     material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
-    material.shiness = 32.0f;
+    material.shiness = 64.0f;
+
+
 
     while(!glfwWindowShouldClose(_window))
     {
@@ -124,13 +142,13 @@ void App::run()
         view = camera.GetViewMat4();
         glm::vec3 viewPos = camera.GetPos();
 
-        light.lightColor.x = sin(glfwGetTime() * 2.0f);
+        /* light.lightColor.x = sin(glfwGetTime() * 2.0f);
         light.lightColor.y = sin(glfwGetTime() * 0.7f);
         light.lightColor.z = sin(glfwGetTime() * 1.3f);
 
         light.diffuse = light.lightColor * glm::vec3(0.5f);
         light.ambient = light.diffuse * glm::vec3(0.2f);
-        light.specular = glm::vec3(1.0f);
+        light.specular = glm::vec3(1.0f); */
 
         objModel = glm::mat4(1.0f);
         objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
@@ -143,15 +161,14 @@ void App::run()
         objShader->SetVec3f("lightPos", light.lightPos);
         objShader->SetVec3f("viewPos", viewPos);
 
+    // std::cout << "test1" << std::endl;
         objShader->SetVec3f("light.lightPos", light.lightPos);
         objShader->SetVec3f("light.ambient", light.ambient);
         objShader->SetVec3f("light.diffuse", light.diffuse);
         objShader->SetVec3f("light.specular", light.specular);
+    // std::cout << "passed" << std::endl;
 
         objShader->SetFloat("material.shiness", material.shiness);
-        objShader->SetVec3f("material.ambient", material.ambient);
-        objShader->SetVec3f("material.diffuse", material.diffuse);
-        objShader->SetVec3f("material.specular", material.specular);
 
         GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
 
