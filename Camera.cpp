@@ -94,6 +94,11 @@ glm::mat4 Camera::GetProjMat4(float w, float h)
     return glm::perspective(_fov, w / h, _near, _far);
 }
 
+void Camera::PrintfInfo()
+{
+    printf("camera pos : {%f, %f, %f}, front : {%f, %f, %f}, up : {%f, %f, %f}\n", _pos.x, _pos.y, _pos.z, _front.x, _front.y, _front.z, _up.x, _up.y, _up.z);
+}
+
 glm::mat4 Camera::GetViewMat4()
 {
     return glm::lookAt(_pos, _pos + _front, _up);

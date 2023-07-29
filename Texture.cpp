@@ -6,7 +6,7 @@
 #include "glad/glad.h"
 #include "help.h"
 
-Texture::Texture(unsigned int id, unsigned int type, unsigned int format): _renderID(id), _type(type), _format(format)
+Texture::Texture(unsigned int id, std::string name, unsigned int type, unsigned int format): _renderID(id), _type(type), _format(format), _name(name)
 {
 
 }
@@ -16,14 +16,14 @@ Texture::~Texture()
     GLCall(glDeleteTextures(1, &_renderID));
 }
 
-std::unique_ptr<Texture> Texture::CreateTexture(const char* path, unsigned int type, unsigned int format)
+std::unique_ptr<Texture> Texture::CreateTexture(std::string path, std::string name, unsigned int type, unsigned int format)
 {
     unsigned int texture = 0;
     unsigned char* data = nullptr;
     int height, width, nrChannels;
     unsigned int fileFormat;
 
-    data = stbi_load(path, &width, &height, &nrChannels, 0);
+    data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
 
     if (data == nullptr) {
         std::cout << "failed to load texture :" << path << std::endl;
@@ -61,7 +61,7 @@ std::unique_ptr<Texture> Texture::CreateTexture(const char* path, unsigned int t
     stbi_image_free(data);
     GLCall(glGenerateMipmap(type));
 
-    return std::unique_ptr<Texture>(new Texture(texture, type, format));
+    return std::unique_ptr<Texture>(new Texture(texture, name, type, format));
 }
 
 void Texture::SetFiltering(unsigned int minFilter, unsigned int magFilter)

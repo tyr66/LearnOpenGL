@@ -2,7 +2,7 @@
 #include "glad/glad.h"
 #include "help.h"
 
-VertexBuffer::VertexBuffer(unsigned int id, void* buffer, unsigned int count):_renderID(id), _data(buffer), _count(count)
+VertexBuffer::VertexBuffer(unsigned int id, unsigned int count):_renderID(id), _count(count)
 {
 }
 
@@ -13,7 +13,7 @@ VertexBuffer::VertexBuffer(unsigned int id, void* buffer, unsigned int count):_r
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, vbo));
     GLCall(glBufferData(GL_ARRAY_BUFFER, size, buffer, GL_STATIC_DRAW));
 
-    return std::unique_ptr<VertexBuffer>(new VertexBuffer(vbo, buffer, size));
+    return std::unique_ptr<VertexBuffer>(new VertexBuffer(vbo, size));
 }
 
 VertexBuffer::~VertexBuffer()

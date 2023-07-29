@@ -14,14 +14,11 @@
 #include "App.h"
 #include "help.h"
 #include "Shader.h"
-#include "IndicesBuffer.h"
-#include "VertexBuffer.h"
-#include "VertexArray.h"
-#include "Texture.h"
 #include "Input.h"
 #include "Camera.h"
 #include "GeometryGenerator.h"
 #include "light.h"
+#include "Model.h"
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
@@ -55,180 +52,75 @@ void App::init()
 
 void App::run()
 {
-    std::vector<float> verts;
-    std::vector<unsigned int> indices;
-    GeometryGenerator::generateCube(verts, indices, 1.0f, 1.0f, 1.0f);
-
-    Camera camera;
-
-    auto objVbo = VertexBuffer::CreateVertexBuffer((void*)verts.data(), sizeof(float) * verts.size());
-    auto objvao = VertexArray::CreateVertexArray();
-    auto objEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
-    auto objShader = Shader::CreateShader("../shaders/vert.shader", "../shaders/frag.shader");
-
-    auto lightVbo = VertexBuffer::CreateVertexBuffer((void*)verts.data(), sizeof(float) * verts.size());
-    auto lightvao = VertexArray::CreateVertexArray();
-    auto lightEbo = IndiceBuffer::CreateIndiceBuffer(indices.data(), indices.size());
-    auto lightShader = Shader::CreateShader("../shaders/lightvert.shader", "../shaders/lightfrag.shader");
-
-    auto diffuseTex = Texture::CreateTexture("../textures/container2.png", GL_TEXTURE_2D, GL_RGB);
-    diffuseTex->SetFiltering(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
-    diffuseTex->SetWrapping(GL_REPEAT, GL_REPEAT);
-    auto specularTex = Texture::CreateTexture("../textures/container2_specular.png", GL_TEXTURE_2D, GL_RGB);
-    specularTex->SetFiltering(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
-    specularTex->SetWrapping(GL_REPEAT, GL_REPEAT);
-
-    VertexBufferLayout objLayout;
-    objLayout.push<float>(3);
-    objLayout.push<float>(3);
-    objLayout.push<float>(2);
-    objvao->AddBuffer(*objVbo.get(), objLayout);
-
-    VertexBufferLayout lightLayout;
-    lightLayout.push<float>(3);
-    lightLayout.push<float>(3);
-    lightLayout.push<float>(2);
-    lightvao->AddBuffer(*lightVbo.get(), lightLayout);
-    
-glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f),
-        glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f,  2.0f, -2.5f),
-        glm::vec3( 1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-    // positions of the point lights
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
-    };
-
-
-    glm::vec3 objColor = glm::vec3(1.0f, 0.5f, 0.31f);
-
-    objShader->Bind();
-    objShader->SetVec3f("objColor", objColor);
-    objShader->SetInt("material.diffuse", 0);
-    objShader->SetInt("material.specular", 1);
-    diffuseTex->BindAndActive(GL_TEXTURE0);
-    specularTex->BindAndActive(GL_TEXTURE1);
-
-    lightShader->Bind();
-
-    // 设置变换矩阵
-    glm::mat4 objModel = glm::mat4(1.0f);
-    glm::mat4 lightModel = glm::mat4(1.0f);
-    glm::mat4 view = glm::mat4(1.0f);
-    glm::mat4 proj = glm::mat4(1.0f);
-
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    proj = glm::perspective(glm::radians(45.0f), _width / (float)_height, 0.1f, 100.0f);
-
-    Material material;
-    material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
-    material.diffuse = glm::vec3(1.0f, 0.5f, 0.31f);
-    material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
-    material.shiness = 64.0f;
-
+    glm::vec3 lightDir = glm::vec3(0.5f, -1.0f, -1.0f);
     DirectionalLight dirLight;
-    dirLight.lightDir = glm::normalize(glm::vec3(-0.2f, -1.0f, -0.3f));
     dirLight.ambient = glm::vec3(0.05f, 0.05f, 0.05f);
-    dirLight.diffuse = glm::vec3(0.4f, 0.4f, 0.4f);
-    dirLight.specular = glm::vec3(0.5f, 0.5f, 0.5f);
-    dirLight.name = "dirLight";
+    dirLight.diffuse = glm::vec3(0.33f, 0.33f, 0.33f);
+    dirLight.specular = glm::vec3(0.44f, 0.44f, 0.44f);
 
     SpotLight spotLight;
-    spotLight.name = "spotLight";
-    spotLight.lightDir = glm::vec3(0.0f, 0.0f, -1.0f);
-    spotLight.lightPos = glm::vec3(0.0f);
     spotLight.ambient = glm::vec3(0.0f, 0.0f, 0.0f);
     spotLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
     spotLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-    spotLight.cutOff = glm::cos(glm::radians(12.5f));
-    spotLight.outerCutoff = glm::cos(glm::radians(15.0f));
     spotLight.constant = 1.0f;
     spotLight.linear = 0.09f;
     spotLight.quadratic = 0.032f;
+    spotLight.cutOff = glm::cos(glm::radians(12.5f));
+    spotLight.outerCutoff = glm::cos(glm::radians(20.0f));
 
-    PointLight pointLights[4];
-    for (int i = 0; i < 4; i++) {
-        pointLights[i].name = "pointLights[" + std::to_string(i) + ']';
-        pointLights[i].lightPos = pointLightPositions[i];
-        pointLights[i].ambient = glm::vec3(0.05f, 0.05f, 0.05f);
-        pointLights[i].diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
-        pointLights[i].specular = glm::vec3(1.0f, 1.0f, 1.0f);
-        pointLights[i].constant = 1.0f;
-        pointLights[i].linear = 0.09f;
-        pointLights[i].quadratic = 0.032f;
-        // std::cout << pointLights[i].name << std::endl;
-    }
+    auto bag = Model::CreateModel("./models/survival-guitar/backpack.obj");
+    bag->SetScale(0.5f, 0.5f, 0.5f);
+    bag->SetPos(0.0f, 0.0f, -1.0f);
+
+    Camera camera;
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    camera.SetCamera(pos, front, up);
+
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 model;
+
+    auto bagShader = Shader::CreateShader("./shaders/model_vert.shader", "./shaders/model_frag.shader");
+    bagShader->Bind();
+
+    bagShader->SetDirectionalLightNum(1);
+    bagShader->SetSpotLightNum(1);
+    bagShader->SetPointLightNum(0);
 
     while(!glfwWindowShouldClose(_window))
     {
+
         GLCall(glEnable(GL_DEPTH_TEST));
-        // GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
+        //GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
         GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-        camera.UpdateCameraFront(Input::getXMouse(), Input::getYMouse());
         camera.UpdateCameraFov(Input::getXoffset(), Input::getYoffste());
+        camera.UpdateCameraFront(Input::getXMouse(), Input::getYMouse());
         camera.UpdateCameraPos();
 
-        proj = camera.GetProjMat4(_width, _height);
+        model = bag->GetModelMat();
+        proj = glm::perspective(glm::radians(camera.GetFov()), _width / (float)_height, 0.1f, 100.0f);
         view = camera.GetViewMat4();
-        glm::vec3 viewPos = camera.GetPos();
 
-        spotLight.lightPos = camera.GetPos();
-        spotLight.lightDir = -camera.GetFront();
-
-        objModel = glm::mat4(1.0f);
-        objModel = glm::translate(objModel, glm::vec3(0, 0, 0));
-        objShader->Bind();
-        objvao->Bind();
-        objEbo->Bind();
-        objShader->SetMat4f("view", glm::value_ptr(view));
-        objShader->SetMat4f("proj", glm::value_ptr(proj));
-        objShader->SetVec3f("viewPos", viewPos);
-        objShader->SetDirectionalLight(dirLight);
-        objShader->SetSpotLight(spotLight);
-        objShader->SetInt("pointLightCnt", 4);
-        for (int i = 0; i < 4; i++) {
-            objShader->SetPointLight(pointLights[i]);
-        }
-
-        objShader->SetFloat("material.shiness", material.shiness);
-
-        for (int i = 0; i < 10; i++)
-        {
-            objModel = glm::mat4(1.0f);
-            objModel = glm::translate(objModel,cubePositions[i]);
-            objModel = glm::rotate(objModel, glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
-            objShader->SetMat4f("model", glm::value_ptr(objModel));
-            GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
-        }
+        dirLight.lightDir = glm::normalize(view * glm::vec4(lightDir, 0.0f));
+        spotLight.lightPos = view * glm::vec4(camera.GetPos(), 1.0f);
+        spotLight.lightDir = glm::normalize(view * glm::vec4(camera.GetFront(), 0.0f));
 
 
-        // 绘制灯光物体
-        lightvao->Bind();
-        lightShader->Bind();
-        lightEbo->Bind();
-        lightShader->SetMat4f("view", glm::value_ptr(view));
-        lightShader->SetMat4f("proj", glm::value_ptr(proj));
+        bagShader->SetDirectionalLight(dirLight);
+        bagShader->SetSpotLight(spotLight);
 
-        for (int i = 0; i < 4; i++)
-        {
-            lightModel = glm::mat4(1.0f);
-            lightModel = glm::translate(lightModel, pointLightPositions[i]);
-            lightModel = glm::scale(lightModel, glm::vec3(0.2f, 0.2f, 0.2f));
-            lightShader->SetMat4f("model", glm::value_ptr(lightModel));
-            GLCall(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0));
-        }
+        bagShader->SetMat4f("model", glm::value_ptr(model));
+        bagShader->SetMat4f("proj", glm::value_ptr(proj));
+        bagShader->SetMat4f("view", glm::value_ptr(view));
+
+        bag->Draw(*bagShader.get());
+
+        //camera.PrintfInfo();
+
+        bagShader->ResetLightIdx(); // 重设光照的索引
 
         processInput();
 

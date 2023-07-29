@@ -2,7 +2,7 @@
 #include "glad/glad.h"
 #include "help.h"
 
-IndiceBuffer::IndiceBuffer(unsigned int id,unsigned int* buffer, int count):_renderID(id), _data(buffer), _count(count)
+IndiceBuffer::IndiceBuffer(unsigned int id, int count):_renderID(id), _count(count)
 {
 }
 
@@ -13,7 +13,7 @@ std::unique_ptr<IndiceBuffer> IndiceBuffer::CreateIndiceBuffer(unsigned int* buf
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indiceBufferID));
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * count, buffer, GL_STATIC_DRAW));
 
-    return std::unique_ptr<IndiceBuffer>(new IndiceBuffer(indiceBufferID, buffer, count));
+    return std::unique_ptr<IndiceBuffer>(new IndiceBuffer(indiceBufferID, count));
 }
 
 IndiceBuffer::~IndiceBuffer()

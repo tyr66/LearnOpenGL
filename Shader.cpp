@@ -7,6 +7,8 @@
 #include "Shader.h"
 #include "light.h"
 
+const char* Shader::DiffuseTexturePrefix = "texture_diffuse";
+const char* Shader::SpecularTexturePrefix = "texture_specular";
 
 static std::string readFile(const char* filePath)
 {
@@ -116,6 +118,7 @@ std::unique_ptr<Shader> Shader::CreateShader(const char* vertShaderPath, const c
     return std::unique_ptr<Shader>(new Shader(shaderID));
 }
 
+
 void Shader::Bind()
 {
     GLCall( glUseProgram(_renderID));
@@ -124,6 +127,28 @@ void Shader::Bind()
 void Shader::Unbind()
 {
     GLCall(glUseProgram(0));
+}
+
+void Shader::ResetLightIdx()
+{
+    _directionalLightIdx = 0;
+    _pointLightIdx = 0;
+    _spotLightIdx = 0;
+}
+
+std::string Shader::GetDirectionLightPrefix(int idx)
+{
+    return "dirLights[" + std::to_string(idx) + "].";
+}
+
+std::string Shader::GetPointLightPrefix(int idx)
+{
+    return "pointLights[" + std::to_string(idx) + "].";
+}
+
+std::string Shader::GetSpotLightPrefix(int idx)
+{
+    return "spotLights[" + std::to_string(idx) + "].";
 }
 
 void Shader::SetInt(std::string& name, int value)
@@ -235,25 +260,7 @@ void Shader::SetVec3f(std::string&& name, const glm::vec3& v)
 
 void Shader::SetDirectionalLight(const DirectionalLight& light)
 {
-    std::string prefix = light.name + '.';
-
-    int location = getAndSetLocation(prefix + "lightDir");
-    GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
-
-    location = getAndSetLocation(prefix + "ambient");
-    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
-
-
-    location = getAndSetLocation(prefix + "diffuse");
-    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
-
-    location = getAndSetLocation(prefix + "specular");
-    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
-
-}
-void Shader::SetDirectionalLight(const DirectionalLight&& light)
-{
-    std::string prefix = light.name + '.';
+    std::string prefix = this->GetDirectionLightPrefix(_directionalLightIdx++);
 
     int location = getAndSetLocation(prefix + "lightDir");
     GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
@@ -271,7 +278,7 @@ void Shader::SetDirectionalLight(const DirectionalLight&& light)
 }
 void Shader::SetSpotLight(const SpotLight& light)
 {
-    std::string prefix = light.name + '.';
+    std::string prefix = GetSpotLightPrefix(_spotLightIdx++);
 
     int location = getAndSetLocation(prefix + "lightDir");
     GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
@@ -290,63 +297,25 @@ void Shader::SetSpotLight(const SpotLight& light)
     GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
 
 
-    location = getAndSetLocation(prefix + "outerCutoff");
+    location = getAndSetLocation(prefix + "outerCutOff");
     GLCall(glUniform1f(location, light.outerCutoff));
 
 
     location = getAndSetLocation(prefix + "cutOff");
     GLCall(glUniform1f(location, light.cutOff));
 
-    location = getAndSetLocation(prefix + "constant");
+    location = getAndSetLocation(prefix + "constantAttenuation");
     GLCall(glUniform1f(location, light.constant));
 
-    location = getAndSetLocation(prefix + "linear");
+    location = getAndSetLocation(prefix + "linearAttenuation");
     GLCall(glUniform1f(location, light.linear));
 
-    location = getAndSetLocation(prefix + "quadratic");
+    location = getAndSetLocation(prefix + "quadraticAttenuation");
     GLCall(glUniform1f(location, light.quadratic));
-}
-void Shader::SetSpotLight(const SpotLight&& light)
-{
-    std::string prefix = light.name + '.';
-
-    int location = getAndSetLocation(prefix + "lightDir");
-    GLCall(glUniform3f(location, light.lightDir.x, light.lightDir.y, light.lightDir.z));
-
-    location = getAndSetLocation(prefix + "lightPos");
-    GLCall(glUniform3f(location, light.lightPos.x, light.lightPos.y, light.lightPos.z));
-
-    location = getAndSetLocation(prefix + "ambient");
-    GLCall(glUniform3f(location, light.ambient.x, light.ambient.y, light.ambient.z));
-
-
-    location = getAndSetLocation(prefix + "diffuse");
-    GLCall(glUniform3f(location, light.diffuse.x, light.diffuse.y, light.diffuse.z));
-
-    location = getAndSetLocation(prefix + "specular");
-    GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
-
-
-    location = getAndSetLocation(prefix + "outerCutoff");
-    GLCall(glUniform1f(location, light.outerCutoff));
-
-
-    location = getAndSetLocation(prefix + "cutOff");
-    GLCall(glUniform1f(location, light.cutOff));
-
-    location = getAndSetLocation(prefix + "constant");
-    GLCall(glUniform1f(location, light.constant));
-
-    location = getAndSetLocation(prefix + "linear");
-    GLCall(glUniform1f(location, light.linear));
-
-    location = getAndSetLocation(prefix + "quadratic");
-    GLCall(glUniform1f(location, light.quadratic));
-
 }
 void Shader::SetPointLight(const PointLight& light)
 {
-    std::string prefix = light.name + '.';
+    std::string prefix = GetPointLightPrefix(_pointLightIdx++);
 
     int location = getAndSetLocation(prefix + "lightPos");
     GLCall(glUniform3f(location, light.lightPos.x, light.lightPos.y, light.lightPos.z));
@@ -361,16 +330,30 @@ void Shader::SetPointLight(const PointLight& light)
     location = getAndSetLocation(prefix + "specular");
     GLCall(glUniform3f(location, light.specular.x, light.specular.y, light.specular.z));
 
-    location = getAndSetLocation(prefix + "constant");
+    location = getAndSetLocation(prefix + "constantAttenuation");
     GLCall(glUniform1f(location, light.constant));
 
-    location = getAndSetLocation(prefix + "linear");
+    location = getAndSetLocation(prefix + "linearAttenuation");
     GLCall(glUniform1f(location, light.linear));
 
-    location = getAndSetLocation(prefix + "quadratic");
+    location = getAndSetLocation(prefix + "quadraticAttenuation");
     GLCall(glUniform1f(location, light.quadratic));
 }
-void SetPointLight(const PointLight&& light);
+
+void Shader::SetDirectionalLightNum(int num)
+{
+    this->SetInt("dirLightCnt", num);
+}
+
+void Shader::SetPointLightNum(int num)
+{
+    this->SetInt("pointLightCnt", num);
+}
+
+void Shader::SetSpotLightNum(int num)
+{
+    this->SetInt("spotLightCnt", num);
+}
 
 int Shader::getAndSetLocation(const std::string& name) 
 {

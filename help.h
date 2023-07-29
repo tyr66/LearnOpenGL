@@ -3,6 +3,7 @@
 #define ASSERT(x) if (!(x)) errorHandle("GL error");
 #define GLCall(x) (glClearError(), (x)); ASSERT(glCheckError(#x, __FILE__, __LINE__))
 
+#define VIEWSPACE_CALUATION
 
 void glClearError();
 

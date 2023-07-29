@@ -4,7 +4,7 @@
 
 class VertexBuffer {
 private:
-    VertexBuffer(unsigned int id, void* buffer, unsigned int count);
+    VertexBuffer(unsigned int id, unsigned int count);
 public:
     static std::unique_ptr<VertexBuffer> CreateVertexBuffer(void* buffer , unsigned int size);
     ~VertexBuffer();
@@ -12,6 +12,5 @@ public:
     void Unbind() const;
 private:
     unsigned int _renderID;
-    void* _data;
     unsigned int _count;
 };
