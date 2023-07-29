@@ -65,10 +65,10 @@ void Camera::UpdateCameraPos()
         _pos += -_front * movedelta;
     }
     if (Input::IsKeyPress(GLFW_KEY_A)) {
-        _pos += -glm::cross(_front, _up) * movedelta;
+        _pos += -glm::normalize(glm::cross(_front, _up)) * movedelta;
     }
     if (Input::IsKeyPress(GLFW_KEY_D)) {
-        _pos += glm::cross(_front, _up) * movedelta;
+        _pos += glm::normalize(glm::cross(_front, _up) )* movedelta;
     }
 
     _lastTime = glfwGetTime();

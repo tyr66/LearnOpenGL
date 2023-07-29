@@ -19,5 +19,4 @@ void main()
     normal = vec3(view * model * vec4(Normal, 0.0));
     pos = vec3(view * model * vec4(Pos, 1.0));
     normal = normalize(normal);
-
 }
