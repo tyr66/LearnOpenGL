@@ -88,8 +88,6 @@ void App::run()
     bagShader->SetDirectionalLightNum(1);
     bagShader->SetSpotLightNum(1);
     bagShader->SetPointLightNum(0);
-    bagShader->SetFloat("near", camera.GetNear());
-    bagShader->SetFloat("far", camera.GetFar());
 
     while(!glfwWindowShouldClose(_window))
     {

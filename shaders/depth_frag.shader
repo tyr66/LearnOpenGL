@@ -72,8 +72,8 @@ uniform SpotLight spotLights[MAX_SPOT_LIGHT];
 uniform int dirLightCnt;
 uniform int pointLightCnt;
 uniform int spotLightCnt;
-uniform float near;
-uniform float far;
+float near = 0.1;
+float far = 5.0;
 
 float LinearDepth(float depth);
 
