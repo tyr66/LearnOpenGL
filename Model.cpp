@@ -8,6 +8,7 @@
 
 #include "Model.h"
 #include "Shader.h"
+#include "help.h"
 
 std::unique_ptr<Model> Model::CreateModel(std::string path)
 {

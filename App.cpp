@@ -52,6 +52,14 @@ void App::init()
 
 void App::run()
 {
+    glm::vec3 positions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+    };
+
+
     glm::vec3 lightDir = glm::vec3(0.5f, -1.0f, -1.0f);
     DirectionalLight dirLight;
     dirLight.ambient = glm::vec3(0.05f, 0.05f, 0.05f);
@@ -73,7 +81,7 @@ void App::run()
     bag->SetPos(0.0f, 0.0f, -1.0f);
 
     Camera camera;
-    glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, 5.0f);
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.SetCamera(pos, front, up, 0.1f , 100.0f);
@@ -82,19 +90,24 @@ void App::run()
     glm::mat4 proj;
     glm::mat4 model;
 
-    auto bagShader = Shader::CreateShader("./shaders/model_vert.shader", "./shaders/depth_frag.shader");
+    auto bagShader = Shader::CreateShader("./shaders/model_vert.shader", "./shaders/model_frag.shader");
     bagShader->Bind();
 
     bagShader->SetDirectionalLightNum(1);
     bagShader->SetSpotLightNum(1);
     bagShader->SetPointLightNum(0);
 
+    auto outlineShader = Shader::CreateShader("./shaders/outline_vert.shader", "./shaders/outline_frag.shader");
+    
+    GLCall(glEnable(GL_CULL_FACE));
+    GLCall(glCullFace(GL_BACK));
+
     while(!glfwWindowShouldClose(_window))
     {
 
         GLCall(glEnable(GL_DEPTH_TEST));
         //GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
-        GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+        GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
 
         camera.UpdateCameraFov(Input::getXoffset(), Input::getYoffste());
         camera.UpdateCameraFront(Input::getXMouse(), Input::getYMouse());
@@ -108,16 +121,59 @@ void App::run()
         spotLight.lightPos = view * glm::vec4(camera.GetPos(), 1.0f);
         spotLight.lightDir = glm::normalize(view * glm::vec4(camera.GetFront(), 0.0f));
 
-
+        bagShader->Bind();
         bagShader->SetDirectionalLight(dirLight);
         bagShader->SetSpotLight(spotLight);
 
-        bagShader->SetMat4f("model", glm::value_ptr(model));
         bagShader->SetMat4f("proj", glm::value_ptr(proj));
         bagShader->SetMat4f("view", glm::value_ptr(view));
 
-        bag->Draw(*bagShader.get());
+        outlineShader->Bind();
+        outlineShader->SetMat4f("proj", glm::value_ptr(proj));
+        outlineShader->SetMat4f("view", glm::value_ptr(view));
 
+        for (int i = 0; i < sizeof(positions) / sizeof(glm::vec3); i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, positions[i]);
+            bagShader->Bind();
+            bagShader->SetMat4f("model", glm::value_ptr(model));
+            bag->Draw(*bagShader.get());
+        }
+
+
+        GLCall(glClearStencil(0));
+        outlineShader->Bind();
+
+        GLCall(glEnable(GL_STENCIL_TEST));
+
+        for (int i = 0; i < sizeof(positions) / sizeof(glm::vec3); i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, positions[i]);
+            outlineShader->SetMat4f("model", glm::value_ptr(model));
+
+            GLCall(glEnable(GL_DEPTH_TEST));
+            GLCall(glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+            GLCall(glColorMask(GL_FALSE, GL_FALSE, GL_FALSE,GL_FALSE));
+            GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+            GLCall(glStencilMask(0xFF));
+            GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+            bag->Draw(*outlineShader.get());
+
+            //draw outline
+            GLCall(glDisable(GL_DEPTH_TEST));
+            GLCall(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE,GL_TRUE));
+            GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
+            GLCall(glStencilMask(0x00));
+            model = glm::scale(model, glm::vec3(1.01f, 1.01f, 1.01f));
+            outlineShader->SetMat4f("model", glm::value_ptr(model));
+            bag->Draw(*outlineShader.get());
+            GLCall(glStencilMask(0xFF));
+        }
+
+        GLCall(glDisable(GL_STENCIL_TEST));
         //camera.PrintfInfo();
 
         bagShader->ResetLightIdx(); // 重设光照的索引

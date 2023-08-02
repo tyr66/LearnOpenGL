@@ -24,6 +24,7 @@ public:
     void SetPos(float x, float y, float z);
     void SetRotation(float x, float y, float z);
     void SetScale(float x, float y, float z);
+    void SetOutline(bool isOn){_isDrawOutline = isOn;}
     void PrintLoadedTextures();
     glm::mat4 GetModelMat();
     ~Model(){}
@@ -44,4 +45,6 @@ private:
     glm::vec3 _rotation;
     glm::vec3 _scale;
     glm::mat4 _modelMat;
+
+    bool _isDrawOutline;
 };
