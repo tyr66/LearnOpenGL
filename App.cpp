@@ -76,18 +76,20 @@ void App::run()
     glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    camera.SetCamera(pos, front, up);
+    camera.SetCamera(pos, front, up, 0.1f , 100.0f);
 
     glm::mat4 view;
     glm::mat4 proj;
     glm::mat4 model;
 
-    auto bagShader = Shader::CreateShader("./shaders/model_vert.shader", "./shaders/model_frag.shader");
+    auto bagShader = Shader::CreateShader("./shaders/model_vert.shader", "./shaders/depth_frag.shader");
     bagShader->Bind();
 
     bagShader->SetDirectionalLightNum(1);
     bagShader->SetSpotLightNum(1);
     bagShader->SetPointLightNum(0);
+    bagShader->SetFloat("near", camera.GetNear());
+    bagShader->SetFloat("far", camera.GetFar());
 
     while(!glfwWindowShouldClose(_window))
     {

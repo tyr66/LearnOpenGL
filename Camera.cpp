@@ -13,7 +13,7 @@ Camera::Camera(): _pos(0.0f, 0.0f, 3.0f), _front(0.0f, 0.0f, -1.0f), _up(0.0f, 1
     _yaw = 180.0f;
 }
 
-void Camera::SetCamera(glm::vec3 pos, glm::vec3 front, glm::vec3 up)
+void Camera::SetCamera(glm::vec3 pos, glm::vec3 front, glm::vec3 up, float near, float far)
 {
 }
 

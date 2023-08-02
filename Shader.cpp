@@ -51,6 +51,7 @@ static unsigned int compileShader(unsigned int shaderType, const char* filePath)
     unsigned int shader;
     auto shaderSource = readFile(filePath);
     const char* source = shaderSource.c_str();
+    //std::cout << source << std::endl << "-----------------------------------------" << std::endl;
     shader = GLCall(glCreateShader(shaderType));
     GLCall(glShaderSource(shader, 1, &source, nullptr));
     GLCall(glCompileShader(shader));

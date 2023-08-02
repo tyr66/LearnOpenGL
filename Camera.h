@@ -5,13 +5,15 @@
 class Camera {
 public:
     Camera();
-    void SetCamera(glm::vec3 pos, glm::vec3 front, glm::vec3 up);
+    void SetCamera(glm::vec3 pos, glm::vec3 front, glm::vec3 up, float near, float far);
     void SetFrustum(float fov, float near, float far);
     void UpdateCameraFront(double mouseX, double mouseY);
     void UpdateCameraPos();
     void UpdateCameraFov(double xOffset, double yOffset);
 
     float GetFov() const { return _fov; }
+    float GetFar() const {return _far;}
+    float GetNear() const {return _near;}
     glm::vec3 GetPos()const{return _pos;}
     glm::vec3 GetFront()const{return _front;};
     glm::mat4 GetViewMat4();
