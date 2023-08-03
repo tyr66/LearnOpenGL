@@ -3,7 +3,7 @@
 #include "Shader.h"
 
 
-void Mesh::Draw(Shader& shader, std::vector<std::unique_ptr<Texture>>& texBuffer)
+void Mesh::Draw(ShaderPtr& shader, std::vector<std::unique_ptr<Texture>>& texBuffer)
 {
 
     //TODO 设置贴图
@@ -25,7 +25,7 @@ void Mesh::Draw(Shader& shader, std::vector<std::unique_ptr<Texture>>& texBuffer
             name = Shader::SpecularTexturePrefix + std::to_string(++specular_id);
             break;
         }
-		shader.SetInt(std::move(name), i);
+		shader->SetInt(name, i);
         texBuffer[texIdx.idx]->Bind();
     }
 

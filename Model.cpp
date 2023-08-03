@@ -17,12 +17,43 @@ std::unique_ptr<Model> Model::CreateModel(std::string path)
     return model;
 }
 
-void Model::Draw(Shader& shader)
+void Model::Draw(ShaderPtr& shader, ShaderPtr& outlineShader)
 {
-    for (unsigned int i = 0; i < _meshs.size(); i++)
-    {
-        _meshs[i].Draw(shader, _textures_loaded);
+
+    if (_isDrawOutline) {
+
+        shader->Bind();
+        GLCall(glEnable(GL_STENCIL_TEST));
+        GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+        GLCall(glStencilMask(0xFF));
+        GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+        for (unsigned int i = 0; i < _meshs.size(); i++) {
+            _meshs[i].Draw(shader, _textures_loaded);
+        }
+
+        outlineShader->Bind();
+        GLCall(glDisable(GL_DEPTH_TEST))
+        GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
+        GLCall(glStencilMask(0x00));
+        outlineShader->SetFloat("outlineScale", 0.01f);
+
+        for (unsigned int i = 0; i < _meshs.size(); i++) {
+            _meshs[i].Draw(outlineShader, _textures_loaded);
+        }
+        
+        GLCall(glStencilMask(0xFF));
+        GLCall(glEnable(GL_DEPTH_TEST));
+        GLCall(glDisable(GL_STENCIL_TEST));
+
+    } else {
+
+        shader->Bind();
+        for (unsigned int i = 0; i < _meshs.size(); i++)
+        {
+            _meshs[i].Draw(shader, _textures_loaded);
+        }
     }
+
 }
 
 void Model::SetPos(float x, float y, float z)

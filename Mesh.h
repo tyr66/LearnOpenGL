@@ -10,7 +10,7 @@
 #include "Texture.h"
 
 class Texture;
-class Shader;
+class ShaderPtr;
 
 enum TextureUsage
 {
@@ -34,7 +34,7 @@ struct TextureIndex
 
 class Mesh {
 public:
-    void Draw(Shader& shader, std::vector<std::unique_ptr<Texture>>& texBuffer);
+    void Draw(ShaderPtr& shader, std::vector<std::unique_ptr<Texture>>& texBuffer);
     void SetupMesh(std::vector<Vertex>&verts, std::vector<unsigned int>&indics,std::vector<TextureIndex>&texs, VertexBufferLayout& layout);
     void SetupMesh(std::vector<Vertex>&&verts, std::vector<unsigned int>&&indics,std::vector<TextureIndex>&&texs, VertexBufferLayout& layout);
 

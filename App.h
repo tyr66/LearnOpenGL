@@ -10,6 +10,7 @@ public:
     App(int width, int height);
     void init();
     void run();
+    void test();
     ~App();
 private:
     void initGlfw();

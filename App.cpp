@@ -20,7 +20,6 @@
 #include "light.h"
 #include "Model.h"
 
-
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
@@ -44,10 +43,21 @@ App::~App()
 void App::init()
 {
     initGlfw();
-    initShader();
-    initBuffer();
 
     stbi_set_flip_vertically_on_load(true);
+}
+
+void App::test()
+{
+    {
+        auto modelShader = ShaderGenerator::CreateShader("modelShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", false);
+        auto outlineShader = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", true);
+
+        auto modelShader1 = ShaderGenerator::CreateShader("modelShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", false);
+        auto outlineShader1 = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", true);
+    }
+
+    ShaderGenerator::show();
 }
 
 void App::run()
@@ -90,14 +100,16 @@ void App::run()
     glm::mat4 proj;
     glm::mat4 model;
 
-    auto bagShader = Shader::CreateShader("./shaders/model_vert.shader", "./shaders/model_frag.shader");
+    auto bagShader = ShaderGenerator::CreateShader("bagShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", false);
     bagShader->Bind();
 
     bagShader->SetDirectionalLightNum(1);
     bagShader->SetSpotLightNum(1);
     bagShader->SetPointLightNum(0);
 
-    auto outlineShader = Shader::CreateShader("./shaders/outline_vert.shader", "./shaders/outline_frag.shader");
+    auto outlineShader = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", true);
+
+    bag->SetOutline(true);
     
     GLCall(glEnable(GL_CULL_FACE));
     GLCall(glCullFace(GL_BACK));
@@ -138,43 +150,11 @@ void App::run()
             model = glm::translate(model, positions[i]);
             bagShader->Bind();
             bagShader->SetMat4f("model", glm::value_ptr(model));
-            bag->Draw(*bagShader.get());
-        }
-
-
-        GLCall(glClearStencil(0));
-        outlineShader->Bind();
-
-        GLCall(glEnable(GL_STENCIL_TEST));
-
-        for (int i = 0; i < sizeof(positions) / sizeof(glm::vec3); i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, positions[i]);
+            outlineShader->Bind();
             outlineShader->SetMat4f("model", glm::value_ptr(model));
 
-            GLCall(glEnable(GL_DEPTH_TEST));
-            GLCall(glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-            GLCall(glColorMask(GL_FALSE, GL_FALSE, GL_FALSE,GL_FALSE));
-            GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
-            GLCall(glStencilMask(0xFF));
-            GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
-            bag->Draw(*outlineShader.get());
-
-            //draw outline
-            GLCall(glDisable(GL_DEPTH_TEST));
-            GLCall(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE,GL_TRUE));
-            GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
-            GLCall(glStencilMask(0x00));
-            model = glm::scale(model, glm::vec3(1.01f, 1.01f, 1.01f));
-            outlineShader->SetMat4f("model", glm::value_ptr(model));
-            bag->Draw(*outlineShader.get());
-            GLCall(glStencilMask(0xFF));
+            bag->Draw(bagShader, outlineShader);
         }
-
-        GLCall(glDisable(GL_STENCIL_TEST));
-        //camera.PrintfInfo();
 
         bagShader->ResetLightIdx(); // 重设光照的索引
 

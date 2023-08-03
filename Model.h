@@ -11,7 +11,7 @@
 #include "VertexArray.h"
 
 struct TextureIndex;
-class Shader;
+class ShaderPtr;
 // struct aiScene;
 // struct aiNode;
 // struct aiMesh;
@@ -20,7 +20,7 @@ class Shader;
 class Model{
 public:
     static std::unique_ptr<Model> CreateModel(std::string path);
-    void Draw(Shader& shader);
+    void Draw(ShaderPtr& shader, ShaderPtr& outlineShader);
     void SetPos(float x, float y, float z);
     void SetRotation(float x, float y, float z);
     void SetScale(float x, float y, float z);
@@ -46,5 +46,5 @@ private:
     glm::vec3 _scale;
     glm::mat4 _modelMat;
 
-    bool _isDrawOutline;
+    bool _isDrawOutline{false};
 };
