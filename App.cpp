@@ -47,14 +47,14 @@ void App::init()
     stbi_set_flip_vertically_on_load(true);
 
     ShaderGenerator::Init();
-    TextureGenerator::Init();
+    TextureManager::Init();
     MeshManager::Init();
 
 }
 
 void App::clear()
 {
-    TextureGenerator::Clear();
+    TextureManager::Clear();
     ShaderGenerator::Clear();
     MeshManager::Clear();
 
@@ -74,89 +74,93 @@ void App::test()
 
 
     {
-        auto tex0 = TextureGenerator::LoadTexture("textures/awesomeface.png", GL_TEXTURE_2D);
-        auto tex1 = TextureGenerator::LoadTexture("textures/container.jpg", GL_TEXTURE_2D);
-        auto tex2 = TextureGenerator::LoadTexture("textures/awesomeface.png", GL_TEXTURE_2D);
-        auto tex3 = TextureGenerator::LoadTexture("textures/container.jpg", GL_TEXTURE_2D);
+        auto tex0 = TextureManager::LoadTexture("textures/awesomeface.png", GL_TEXTURE_2D);
+        auto tex1 = TextureManager::LoadTexture("textures/container.jpg", GL_TEXTURE_2D);
+        auto tex2 = TextureManager::LoadTexture("textures/awesomeface.png", GL_TEXTURE_2D);
+        auto tex3 = TextureManager::LoadTexture("textures/container.jpg", GL_TEXTURE_2D);
 
         assert(tex1 == tex3 && tex0 == tex2);
 
-        std::cout << "texture : " << TextureGenerator::GetTexture(tex0)->GetName() << ", id = " << tex0 << std::endl;
-        std::cout << "texture : " << TextureGenerator::GetTexture(tex1)->GetName() << ", id = " << tex1 << std::endl;
+        std::cout << "texture : " << TextureManager::GetTexture(tex0)->GetName() << ", id = " << tex0 << std::endl;
+        std::cout << "texture : " << TextureManager::GetTexture(tex1)->GetName() << ", id = " << tex1 << std::endl;
     }
 }
 
 void App::run()
 {
-    glm::vec3 positions[] = {
-        glm::vec3( 0.0f,  0.0f,  -0.5f),
-        glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-    };
-
-    glm::vec3 windowsPositions[] = {
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(1.0f, 0.0f, 1.0f),
-        glm::vec3(-1.0f, 0.0f, 1.0f),
-    };
-
-
-    glm::vec3 lightDir = glm::vec3(0.5f, -1.0f, -1.0f);
-    DirectionalLight dirLight;
-    dirLight.ambient = glm::vec3(0.05f, 0.05f, 0.05f);
-    dirLight.diffuse = glm::vec3(0.33f, 0.33f, 0.33f);
-    dirLight.specular = glm::vec3(0.44f, 0.44f, 0.44f);
-
-    SpotLight spotLight;
-    spotLight.ambient = glm::vec3(0.0f, 0.0f, 0.0f);
-    spotLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
-    spotLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-    spotLight.constant = 1.0f;
-    spotLight.linear = 0.09f;
-    spotLight.quadratic = 0.032f;
-    spotLight.cutOff = glm::cos(glm::radians(12.5f));
-    spotLight.outerCutoff = glm::cos(glm::radians(20.0f));
-
-    auto bag = Model::CreateModel("./models/survival-guitar/backpack.obj");
-    bag->SetScale(0.5f, 0.5f, 0.5f);
-    bag->SetPos(0.0f, 0.0f, -1.0f);
-
-    auto window = GeometryGenerator::generateWindowQuad();
-
     Camera camera;
-    glm::vec3 pos = glm::vec3(0.0f, 0.0f, 5.0f);
-    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    camera.SetCamera(pos, front, up, 0.1f , 100.0f);
-
-    glm::mat4 view;
     glm::mat4 proj;
+    glm::mat4 model;
+    glm::mat4 view;
 
-    auto modelShader = ShaderGenerator::CreateShader("bagShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", false);
-    modelShader->Bind();
-    modelShader->SetDirectionalLightNum(1);
-    modelShader->SetSpotLightNum(1);
-    modelShader->SetPointLightNum(0);
+    glm::vec3 planePosition = glm::vec3(0.0f, -0.5f, 0.0f);
+    glm::vec3 cuebPositions[] = {
+        glm::vec3(-1.0f, 0.0f, -1.0f),
+        glm::vec3(2.0f, 0.0f, 0.0f)
+    };
 
-    auto outlineShader = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", true);
-    std::map<float, glm::vec3> renderOrder;
-    //bag->SetOutline(true);
-    
-    auto transparentShader = ShaderGenerator::CreateShader("transparentShader", "./shaders/transparent_vert.shader", "./shaders/transparent_frag.shader", true);
-    transparentShader->Bind();
-    transparentShader->SetDirectionalLightNum(1);
-    transparentShader->SetSpotLightNum(1);
-    transparentShader->SetPointLightNum(0);
+    // 加载贴图
+    TextureIndex boxDiffuse;
+    boxDiffuse.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    boxDiffuse.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
+
+
+    TextureIndex groundDiffuse;
+    groundDiffuse.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    groundDiffuse.idx = TextureManager::LoadTexture("./textures/metal.png", GL_TEXTURE_2D);
+
+    TextureIndex screenTex;
+    screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    screenTex.idx = TextureManager::CreateTexture("framebuffer", GL_TEXTURE_2D, GL_RGB, _width, _height);
+
+    // 创建网格
+    auto cube = GeometryGenerator::generateCube();
+    cube->SetTexture(boxDiffuse);
+
+    auto plane = GeometryGenerator::generatePlane();
+    plane->SetTexture(groundDiffuse);
+
+    auto screenQuad = GeometryGenerator::generateQuad();
+    screenQuad->SetTexture(screenTex);
+
+    // 创建着色器
+    auto scenseShader = ShaderGenerator::CreateShader("scenseShader" ,"./shaders/framebuffer_vert.shader", "./shaders/framebuffer_frag.shader", true);
+    auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader", true);
+
+    // 创建framebuffer
+    unsigned int fbo;
+    GLCall(glGenFramebuffers(1, &fbo));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, TextureManager::GetTextureRenderID(screenTex.idx), 0));
+
+    unsigned int rbo;
+    GLCall(glGenRenderbuffers(1, &rbo));
+    GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
+    GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _width, _height));
+    GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo));
+
+    unsigned int flag = GLCall(glCheckFramebufferStatus(GL_FRAMEBUFFER));
+
+    if (flag != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "[ERROR] failed to create framebuffer, error code is " <<  flag << std::endl;
+        throw std::runtime_error("failed to create frambuffer");
+    }
+
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+
+    // unsigned int 
 
     GLCall(glEnable(GL_CULL_FACE));
     GLCall(glCullFace(GL_BACK));
+    GLCall(glFrontFace(GL_CCW));
 
     while(!glfwWindowShouldClose(_window))
     {
 
+        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
         GLCall(glEnable(GL_DEPTH_TEST));
-        //GLCall(glClearColor(0.2f, 0.3f, 0.3f, 1.0f));
+        GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f));
         GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
 
         camera.UpdateCameraFov(Input::getXoffset(), Input::getYoffste());
@@ -166,48 +170,32 @@ void App::run()
         proj = glm::perspective(glm::radians(camera.GetFov()), _width / (float)_height, 0.1f, 100.0f);
         view = camera.GetViewMat4();
 
-        dirLight.lightDir = glm::normalize(view * glm::vec4(lightDir, 0.0f));
-        spotLight.lightPos = view * glm::vec4(camera.GetPos(), 1.0f);
-        spotLight.lightDir = glm::normalize(view * glm::vec4(camera.GetFront(), 0.0f));
+        scenseShader->Bind();
+        scenseShader->SetMat4f("proj", proj);
+        scenseShader->SetMat4f("view", view);
 
-        modelShader->Bind();
-        modelShader->SetDirectionalLight(dirLight);
-        modelShader->SetSpotLight(spotLight);
+        for (int i = 0; i < sizeof(cuebPositions) / sizeof(glm::vec3); i++) {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, cuebPositions[i]);
 
-        modelShader->SetMat4f("proj", proj);
-        modelShader->SetMat4f("view", view);
+            scenseShader->SetMat4f("model", model);
 
-        outlineShader->Bind();
-        outlineShader->SetMat4f("proj", proj);
-        outlineShader->SetMat4f("view", view);
-
-        transparentShader->Bind();
-        transparentShader->SetMat4f("proj", proj);
-        transparentShader->SetMat4f("view", view);
-        transparentShader->SetDirectionalLight(dirLight);
-        transparentShader->SetSpotLight(spotLight);
-
-        for (int i = 0; i < sizeof(positions) / sizeof(glm::vec3); i++) {
-            bag->SetPos(positions[i]);
-            bag->Draw(modelShader, outlineShader);
+            cube->Draw(scenseShader);
         }
 
-        // 绘制透明物体
-        GLCall(glEnable(GL_BLEND));
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        for (int i =0; i < sizeof(windowsPositions)/ sizeof(glm::vec3); i++) {
-            float length = glm::distance(windowsPositions[i], camera.GetPos());
-            renderOrder[length] = windowsPositions[i];
-        }
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, planePosition);
+        model = glm::scale(model, glm::vec3(5, 5, 5));
+        scenseShader->SetMat4f("model", model);
+        plane->Draw(scenseShader);
 
-        for (auto it = renderOrder.rbegin(); it != renderOrder.rend(); ++it) {
-            window->SetPos(it->second);
-            window->Draw(transparentShader, outlineShader);
-        }
-        renderOrder.clear();
-        GLCall(glDisable(GL_BLEND));
+        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+        GLCall(glDisable(GL_DEPTH_TEST));
+        GLCall(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
+        GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        modelShader->ResetLightIdx(); // 重设光照的索引
+        framebBufferShader->Bind();
+        screenQuad->Draw(framebBufferShader);
 
         processInput();
 

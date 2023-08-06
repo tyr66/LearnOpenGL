@@ -225,7 +225,7 @@ std::vector<TextureIndex> Model::loadTexture(const aiMaterial* material, aiTextu
 
         material->GetTexture(textureType, i, &texName);
         fullName = _directory + '/' + texName.C_Str();
-        texIndex.idx = TextureGenerator::LoadTexture(fullName, GL_TEXTURE_2D);
+        texIndex.idx = TextureManager::LoadTexture(fullName, GL_TEXTURE_2D);
         texIndex.usage = usage;
         res.push_back(texIndex);
     }

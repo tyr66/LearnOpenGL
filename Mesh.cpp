@@ -64,7 +64,7 @@ void Mesh::Draw(ShaderPtr& shader)
         GLCall(glActiveTexture(GL_TEXTURE0 + i));
 		std:: string name = "material.";
         auto& texIdx = textures[i];
-        auto tex = TextureGenerator::GetTexture(texIdx.idx);
+        auto tex = TextureManager::GetTexture(texIdx.idx);
 
         switch (texIdx.usage)
         {

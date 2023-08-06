@@ -20,6 +20,14 @@ enum TextureUsage
 };
 
 struct Vertex{
+
+    Vertex(){}
+    Vertex(float px, float py, float pz, float nx, float ny, float nz, float tx, float ty){
+        pos = glm::vec3(px, py, pz);
+        normal = glm::vec3(nx, ny, nz);
+        tex = glm::vec2(tx, ty);
+    }
+
     glm::vec3 pos;
     glm::vec3 normal;
     glm::vec2 tex;

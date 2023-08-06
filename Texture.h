@@ -20,7 +20,7 @@ public:
     const std::string& GetName() const { return _name;}
     ~Texture();
 
-    friend class TextureGenerator;
+    friend class TextureManager;
 
 private:
     unsigned int _type;
@@ -29,7 +29,7 @@ private:
     std::string _name;
 };
 
-class TextureGenerator {
+class TextureManager {
 public:
 
     static void Init();
@@ -37,13 +37,15 @@ public:
     static Texture* GetTexture(int id);
     static Texture* GetTexture(const std::string& fullName);
     static int LoadTexture(const std::string& fullName, unsigned int type);
+    static int CreateTexture(const std::string& texName, unsigned int type, unsigned int format, unsigned int w, unsigned int h, void* data = nullptr);
     static int GetTextureIndex(const std::string& fullName);
+    static int GetTextureRenderID(int id);
     static bool IsLoaded(const std::string& fullName);
 
 private:
-    TextureGenerator(){}
+    TextureManager(){}
     int id{0};
-    static std::unique_ptr<TextureGenerator> instance;
+    static std::unique_ptr<TextureManager> instance;
     static bool isInit;
     std::map<std::string, int> _generatedMap;
     std::unordered_map<int, std::unique_ptr<Texture>> _textures;

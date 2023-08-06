@@ -20,8 +20,8 @@ class Shader;
 class ShaderPtr {
 public:
     ShaderPtr(std::shared_ptr<Shader> shader);
-
-    Shader* operator->(){return &(*_shader.get());}
+    Shader* get(){return const_cast<Shader*>(_shader.get());}
+    Shader* operator->(){return const_cast<Shader*>(_shader.get());}
 
     ~ShaderPtr();
 private:

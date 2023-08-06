@@ -6,32 +6,32 @@
 #include "glad/glad.h"
 #include "help.h"
 
-std::unique_ptr<TextureGenerator> TextureGenerator::instance = nullptr;
-bool TextureGenerator::isInit = false;
+std::unique_ptr<TextureManager> TextureManager::instance = nullptr;
+bool TextureManager::isInit = false;
 
-bool TextureGenerator::IsLoaded(const std::string& fullName)
+bool TextureManager::IsLoaded(const std::string& fullName)
 {
     return instance->_generatedMap.count(fullName) > 0;
 }
 
-void TextureGenerator::Init()
+void TextureManager::Init()
 {
     // 初始化并加载默认的贴图
     if (!isInit) {
-        instance.reset(new TextureGenerator());
+        instance.reset(new TextureManager());
         isInit = true;
 
     }
 }
 
-void TextureGenerator::Clear()
+void TextureManager::Clear()
 {
     instance->_generatedMap.clear();
     instance->_textures.clear();
     instance->id = 0;
 }
 
-Texture* TextureGenerator::GetTexture(int id)
+Texture* TextureManager::GetTexture(int id)
 {
     if (instance->_textures.count(id) > 0) {
         return &(*instance->_textures[id].get());
@@ -40,7 +40,7 @@ Texture* TextureGenerator::GetTexture(int id)
     return nullptr;
 }
 
-int TextureGenerator::GetTextureIndex(const std::string& fullName)
+int TextureManager::GetTextureIndex(const std::string& fullName)
 {
     if (instance->_generatedMap.count(fullName) > 0)
         return instance->_generatedMap[fullName];
@@ -48,7 +48,7 @@ int TextureGenerator::GetTextureIndex(const std::string& fullName)
     return -1;
 }
 
-Texture* TextureGenerator::GetTexture(const std::string& fullName)
+Texture* TextureManager::GetTexture(const std::string& fullName)
 {
     if (instance->_generatedMap.count(fullName) > 0)
     {
@@ -57,7 +57,7 @@ Texture* TextureGenerator::GetTexture(const std::string& fullName)
     return nullptr;
 }
 
-int TextureGenerator::LoadTexture(const std::string& fullName, unsigned int type)
+int TextureManager::LoadTexture(const std::string& fullName, unsigned int type)
 {
     if (instance->_generatedMap.count(fullName) > 0) {
         std::cout << "[INFO] already loaded texture : " << fullName << std::endl;
@@ -84,7 +84,9 @@ int TextureGenerator::LoadTexture(const std::string& fullName, unsigned int type
             format = GL_RGB;
         }else if (nrChannels == 4) {
             format = GL_RGBA;
-        } else {
+        } else if (nrChannels == 1){
+            format = GL_RED;
+        } else{
             std::cout << "[ERROR] texture"<< fullName << "unknow channels: " << nrChannels << std::endl;
             assert(false);
         }
@@ -116,7 +118,46 @@ int TextureGenerator::LoadTexture(const std::string& fullName, unsigned int type
     return instance->id;
 }
 
-Texture::Texture(unsigned int id, std::string name, unsigned int type, unsigned int format): _renderID(id), _type(type), _format(format), _name(name)
+int TextureManager::GetTextureRenderID(int id)
+{
+    return instance->_textures[id]->_renderID;
+}
+
+int TextureManager::CreateTexture(const std::string& texName, unsigned int type, unsigned int format, unsigned int w, unsigned int h, void* data)
+{
+    if (instance->_generatedMap.count(texName) > 0) {
+        std::cout << "[INFO] texture : " << texName << "already create" << std::endl; 
+        return instance->_generatedMap[texName];
+    }
+
+    unsigned int texID;
+    GLCall(glGenTextures(1, &texID));
+    GLCall(glBindTexture(type, texID));
+        
+    switch(type)
+    {
+        case GL_TEXTURE_2D:
+            GLCall(glTexImage2D(type, 0 ,format, w, h, 0, format, GL_UNSIGNED_BYTE, data));
+        break;
+        default:
+            assert(false);
+        break;
+    }
+
+    GLCall(glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GLCall(glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    auto ptr = std::unique_ptr<Texture>(new Texture(texID, texName, type, format));
+
+    instance->_generatedMap[texName] = ++instance->id;
+    instance->_textures[instance->id] = std::move(ptr);
+
+    std::cout << "[INFO] create a new texture : " << texName << std::endl;
+
+    return instance->id;
+}
+
+Texture::Texture(unsigned int id, std::string name, unsigned int type, unsigned int format): _type(type), _format(format),_renderID(id),  _name(name)
 {
 
 }
