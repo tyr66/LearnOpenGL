@@ -14,29 +14,8 @@ struct SpotLight;
 struct PointLight;
 
 struct Material;
-class Shader;
 class ShaderPtr;
-
-
-class ShaderGenerator {
-private:
-    std::map<std::string, std::shared_ptr<Shader>> _shaders;
-    static std::unique_ptr<ShaderGenerator> generator;
-    static bool isInit;
-
-public:
-    static ShaderPtr CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence);
-    static void DeleteShader(std::string shaderName);
-
-    static bool IsEmpty() {return generator->_shaders.empty();}
-    static void show(){ 
-        for(auto& shader : generator->_shaders) {
-            std::cout << "shader : " << shader.first << " use_count is " << shader.second.use_count() << std::endl;
-        }
-    }
-
-    static void Clear();
-};
+class Shader;
 
 class ShaderPtr {
 public:
@@ -47,6 +26,28 @@ public:
     ~ShaderPtr();
 private:
     std::shared_ptr<Shader> _shader;
+};
+
+class ShaderGenerator {
+private:
+    std::map<std::string, std::shared_ptr<Shader>> _shaders;
+    static std::unique_ptr<ShaderGenerator> instance;
+    static bool isInit;
+
+public:
+    static void Init();
+    static ShaderPtr CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence);
+    static void DeleteShader(std::string shaderName);
+
+    static bool IsEmpty() {return instance->_shaders.empty();}
+    static void show(){ 
+        for(auto& shader : instance->_shaders) {
+            std::cout << "shader : " << shader.first << " use_count is " << shader.second.use_count() << std::endl;
+        }
+    }
+    static void Clear();
+private:
+    ShaderGenerator();
 };
 
 
@@ -62,7 +63,7 @@ public:
     void ResetLightIdx();
     void SetInt(const std::string&name, int value);
     void SetFloat(const std::string& name, float value);
-    void SetMat4f(const std::string& name, const float* data);
+    void SetMat4f(const std::string& name, glm::mat4& mat);
     void SetVec3f(const std::string& name, const glm::vec3& v);
     /* 
     void SetLight(std::string& name, const Light& light);
@@ -81,7 +82,7 @@ public:
     ~Shader();
 
     // 友元函数声明
-    friend ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence);
+    friend class ShaderGenerator;
 
 public:
     static const char* DiffuseTexturePrefix;

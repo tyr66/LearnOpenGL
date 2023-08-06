@@ -3,7 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include "VertexArray.h"
+#include "VertexBuffer.h"
 #include "glad/glad.h"
 #include <cassert>
 

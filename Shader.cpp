@@ -1,6 +1,6 @@
+#include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <sstream>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "glad/glad.h"
 #include "help.h"
@@ -9,7 +9,8 @@
 
 
 bool ShaderGenerator::isInit = false;
-std::unique_ptr<ShaderGenerator> ShaderGenerator::generator;
+std::unique_ptr<ShaderGenerator> ShaderGenerator::instance;
+
 const char* Shader::DiffuseTexturePrefix = "texture_diffuse";
 const char* Shader::SpecularTexturePrefix = "texture_specular";
 const std::string Shader::DirLightCnt = "dirLightCnt";
@@ -21,8 +22,8 @@ static std::string readFile(const char* filePath)
     std::stringstream ss;
     std::ifstream file;
     std::string msg;
-    size_t fileSz;
     std::string line;
+    size_t fileSz;
 
     file.exceptions(std::ifstream::badbit);
 
@@ -69,23 +70,31 @@ static unsigned int compileShader(unsigned int shaderType, const char* filePath)
         GLCall(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length));
         logInfo = (char*)alloca(length * sizeof(char));
         GLCall(glGetShaderInfoLog(shader, length, &length, logInfo));
+        std::cout << "[ERROR] failed to compile " << filePath << std::endl;
         std::cout << logInfo << std::endl;
-        throw std::runtime_error(logInfo);
+        throw std::runtime_error("");
     }
 
     return shader;
 }
 
-ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence)
+ShaderGenerator::ShaderGenerator()
+{
+}
+
+void ShaderGenerator::Init()
 {
     if (!isInit) {
-        generator.reset(new ShaderGenerator());
+        instance.reset(new ShaderGenerator());
         isInit = true;
     }
+}
 
-    if (generator->_shaders.count(shaderName) > 0) {
+ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence)
+{
+    if (instance->_shaders.count(shaderName) > 0) {
         std::cout << "shader : " << shaderName << " is already existed" << std::endl; 
-        return ShaderPtr(generator->_shaders[shaderName]);
+        return ShaderPtr(instance->_shaders[shaderName]);
     }
 
     char* infoLog;
@@ -116,11 +125,6 @@ ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPa
             GLCall(glDeleteShader(vertexShader));
         if (fragmentShader != 0)
             GLCall(glDeleteShader(fragmentShader));
-
-        if (vertexShader == 0)
-            std::cout << "failed to compile VsShader " << vsPath << std::endl;
-        if (fragmentShader == 0)
-            std::cout << "failed to compile PsShader " << vsPath << std::endl;
         std::cout << e.what() << std::endl;
         throw e;
     }
@@ -128,31 +132,26 @@ ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPa
     GLCall(glDeleteShader(vertexShader));
     GLCall(glDeleteShader(fragmentShader));
 
-    generator->_shaders[shaderName] = std::shared_ptr<Shader>(new Shader(shaderID, shaderName, isPresistence));
+    instance->_shaders[shaderName] = std::shared_ptr<Shader>(new Shader(shaderID, shaderName, isPresistence));
     std::cout << "create is new Shader : " << shaderName << std::endl;
-    return generator->_shaders[shaderName];
+    return instance->_shaders[shaderName];
 }
 
 void ShaderGenerator::DeleteShader(std::string shaderName)
 {
-    if (!isInit) {
-        generator.reset(new ShaderGenerator());
-        isInit = true;
-    }
-
-    if (generator->_shaders.count(shaderName) == 0) {
+    if (instance->_shaders.count(shaderName) == 0) {
         std::cout << "shader : " << shaderName << " dont exist" << std::endl; 
         return;
     }
 
-    auto& shaders = generator->_shaders;
+    auto& shaders = instance->_shaders;
     bool isDelete = true;
     //bool isDelete = !shaders[shaderName]->IsPresistence();
     isDelete &= shaders[shaderName].use_count() == 1;
 
     // 如果该shader 没有被持久化那么就删除
     if (isDelete) {
-        generator->_shaders.erase(shaderName);
+        instance->_shaders.erase(shaderName);
     } else {
         std::cout << "Delete Shader deny: " << shaders[shaderName]->GetName() << "use_count is great than 1" << std::endl;
     }
@@ -160,7 +159,7 @@ void ShaderGenerator::DeleteShader(std::string shaderName)
 
 void ShaderGenerator::Clear()
 {
-    generator->_shaders.clear();
+    instance->_shaders.clear();
 }
 
 ShaderPtr::ShaderPtr(std::shared_ptr<Shader> shader):_shader(shader){
@@ -184,87 +183,37 @@ ShaderPtr::~ShaderPtr()
 Shader::Shader(unsigned int id, std::string name, bool isPresistence):_renderID(id), _name(name), _isPresistence(isPresistence)
 {
 }
-
 Shader::~Shader()
 {
     GLCall(glDeleteProgram(_renderID));
     std::cout << "shader : " << _name << " has deleted" << std::endl;
 }
-
-std::unique_ptr<Shader> Shader::CreateShader(const char* vertShaderPath, const char* fragShaderPath)
-{
-    char* infoLog;
-    unsigned int shaderID;
-    unsigned int vertexShader = 0, fragmentShader = 0;
-
-    try{
-
-        vertexShader = compileShader(GL_VERTEX_SHADER, vertShaderPath);
-        fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragShaderPath);
-        shaderID = GLCall(glCreateProgram());
-
-        GLCall(glAttachShader(shaderID, vertexShader));
-        GLCall(glAttachShader(shaderID, fragmentShader));
-        glLinkProgram(shaderID);
-        int successed;
-        GLCall(glGetProgramiv(shaderID, GL_LINK_STATUS, &successed));
-        if (!successed) {
-            int length;
-            GLCall(glGetProgramiv(shaderID, GL_INFO_LOG_LENGTH, &length));
-            infoLog = (char*)alloca(length * sizeof(char));
-            GLCall(glGetProgramInfoLog(shaderID, length, &length, infoLog));
-            throw std::runtime_error(infoLog);
-        }
-    } catch(std::exception& e)
-    {
-        if (vertexShader != 0)
-            GLCall(glDeleteShader(vertexShader));
-        if (fragmentShader != 0)
-            GLCall(glDeleteShader(fragmentShader));
-        std::cout << e.what() << std::endl;
-        throw e;
-    }
-
-    GLCall(glDeleteShader(vertexShader));
-    GLCall(glDeleteShader(fragmentShader));
-
-    //TODO fix
-    return std::unique_ptr<Shader>(new Shader(shaderID, "", false));
-}
-
-
 void Shader::Bind()
 {
     GLCall( glUseProgram(_renderID));
 }
-
 void Shader::Unbind()
 {
     GLCall(glUseProgram(0));
 }
-
 void Shader::ResetLightIdx()
 {
     _directionalLightIdx = 0;
     _pointLightIdx = 0;
     _spotLightIdx = 0;
 }
-
 std::string Shader::GetDirectionLightPrefix(int idx)
 {
     return "dirLights[" + std::to_string(idx) + "].";
 }
-
 std::string Shader::GetPointLightPrefix(int idx)
 {
     return "pointLights[" + std::to_string(idx) + "].";
 }
-
 std::string Shader::GetSpotLightPrefix(int idx)
 {
     return "spotLights[" + std::to_string(idx) + "].";
 }
-
 void Shader::SetInt(const std::string& name, int value)
 {
     int location;
@@ -277,7 +226,6 @@ void Shader::SetInt(const std::string& name, int value)
     }
     GLCall(glUniform1i(location, value));
 }
-
 void Shader::SetFloat(const std::string& name, float value)
 {
 
@@ -291,9 +239,7 @@ void Shader::SetFloat(const std::string& name, float value)
     }
     GLCall(glUniform1f(location, value));
 }
-
-
-void Shader::SetMat4f(const std::string&name, const float* data)
+void Shader::SetMat4f(const std::string&name, glm::mat4& mat)
 {
     int location;
     if (_uniformLocation.find(name) == _uniformLocation.end()) {
@@ -303,10 +249,8 @@ void Shader::SetMat4f(const std::string&name, const float* data)
     else {
         location = _uniformLocation[name];
     }
-    GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, data));
+    GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(mat)));
 }
-
-
 void Shader::SetVec3f(const std::string& name, const glm::vec3& v)
 {
     int location;
@@ -319,8 +263,6 @@ void Shader::SetVec3f(const std::string& name, const glm::vec3& v)
     }
     GLCall(glUniform3f(location, v.x, v.y, v.z));
 }
-
-
 void Shader::SetDirectionalLight(const DirectionalLight& light)
 {
     std::string prefix = this->GetDirectionLightPrefix(_directionalLightIdx++);
@@ -402,7 +344,6 @@ void Shader::SetPointLight(const PointLight& light)
     location = getAndSetLocation(prefix + "quadraticAttenuation");
     GLCall(glUniform1f(location, light.quadratic));
 }
-
 void Shader::SetDirectionalLightNum(int num)
 {
     this->SetInt(DirLightCnt, num);

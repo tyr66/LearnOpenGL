@@ -87,11 +87,12 @@ vec3 diffuseSample;
 vec3 ambientSample;
 vec3 specularSample;
 
-vec3 defaultSpecular = vec3(0.0, 0.0, 0.0);
-vec3 defaultDiffuse = vec3(1.0, 0.0, 1.0);
+vec3 defaultSpecular = vec3( 0.0, 0.0, 0.0);
+vec3 defaultDiffuse = vec3(1.0, 1.0, 1.0);
 
 void main()
 {
+    float alpha = texture(material.texture_diffuse0, texCoord).a;
     ambientSample = texture(material.texture_diffuse0, texCoord).rgb * material.enableDiffuse;
     diffuseSample = texture(material.texture_diffuse0, texCoord).rgb * material.enableDiffuse;
     specularSample = texture(material.texture_specular0, texCoord).rgb * material.enableSpecular;
@@ -113,7 +114,7 @@ void main()
     for (int i = 0; i < spotLightCnt; i++)
         color += calSpotLight(spotLights[i], normal, viewDir, pos);
 
-    FragColor = vec4(color, 1.0f);
+    FragColor = vec4(color, alpha);
     //FragColor = vec4(dirLights[0].lightDir, 1.0);
     //FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }

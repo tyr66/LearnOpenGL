@@ -3,14 +3,14 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
+#include <map>
+#include <unordered_map>
 
 class Texture{
 private:
     Texture(unsigned int id, std::string name, unsigned int type, unsigned int format);
 
 public:
-    static std::unique_ptr<Texture> CreateTexture(std::string path, std::string name, unsigned int type, unsigned int format);
     void SetWrapping(unsigned int wrap_s, unsigned int wrap_t);
     void SetFiltering(unsigned int minFilter, unsigned int magFilter);
     void Bind();
@@ -20,9 +20,31 @@ public:
     const std::string& GetName() const { return _name;}
     ~Texture();
 
+    friend class TextureGenerator;
+
 private:
     unsigned int _type;
     unsigned int _format;
     unsigned int _renderID;
     std::string _name;
+};
+
+class TextureGenerator {
+public:
+
+    static void Init();
+    static void Clear();
+    static Texture* GetTexture(int id);
+    static Texture* GetTexture(const std::string& fullName);
+    static int LoadTexture(const std::string& fullName, unsigned int type);
+    static int GetTextureIndex(const std::string& fullName);
+    static bool IsLoaded(const std::string& fullName);
+
+private:
+    TextureGenerator(){}
+    int id{0};
+    static std::unique_ptr<TextureGenerator> instance;
+    static bool isInit;
+    std::map<std::string, int> _generatedMap;
+    std::unordered_map<int, std::unique_ptr<Texture>> _textures;
 };

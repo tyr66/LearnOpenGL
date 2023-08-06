@@ -1,8 +1,9 @@
 #include <cmath>
 #include <cassert>
 #include "GeometryGenerator.h"
-
-
+#include "Model.h"
+#include "Mesh.h"
+#include "Texture.h"
 
 void GeometryGenerator::generateCube(std::vector<float>& verts, std::vector<unsigned int>& indices, float w, float h , float d)
 {
@@ -83,3 +84,50 @@ void GeometryGenerator::generateSphere(std::vector<float>& verts, std::vector<un
 {
 
 }
+std::unique_ptr<Model> GeometryGenerator::generateWindowQuad()
+{
+    std::vector<Vertex> verts;
+    std::vector<TextureIndex> textures;
+    std::vector<MeshPtr> meshs;
+    VertexBufferLayout layout;
+
+    Vertex v0, v1, v2, v3;
+
+    v0.pos = glm::vec3(-1.0f, 1.0f, 0.0f);
+    v0.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    v0.tex = glm::vec2(0.0f, 0.0f);
+
+    v1.pos = glm::vec3(1.0f, 1.0f, 0.0f);
+    v1.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    v1.tex = glm::vec2(1.0f, 0.0f);
+
+    v2.pos = glm::vec3(1.0f, -1.0f, 0.0f);
+    v2.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    v2.tex = glm::vec2(1.0f, 1.0f);
+
+    v3.pos = glm::vec3(-1.0f, -1.0f, 0.0f);
+    v3.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    v3.tex = glm::vec2(0.0f, 1.0f);
+
+    verts.push_back(v0); verts.push_back(v1); verts.push_back(v2); verts.push_back(v3);
+
+    std::vector<unsigned int> indices = {
+        0, 3, 1,
+        2, 1, 3,
+    };
+
+    TextureIndex texIdx;
+    texIdx.idx = TextureGenerator::LoadTexture("./textures/blending_transparent_window.png", GL_TEXTURE_2D);
+    texIdx.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    textures.push_back(texIdx);
+    
+    layout.push<float>(3);
+    layout.push<float>(3);
+    layout.push<float>(2);
+
+    auto mesh = MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(textures), layout);
+    meshs.push_back(mesh);
+
+    return Model::CreateModel(meshs);
+}
+

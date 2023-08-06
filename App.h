@@ -11,6 +11,7 @@ public:
     void init();
     void run();
     void test();
+    void clear();
     ~App();
 private:
     void initGlfw();

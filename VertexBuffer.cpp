@@ -6,13 +6,12 @@ VertexBuffer::VertexBuffer(unsigned int id, unsigned int count):_renderID(id), _
 {
 }
 
- std::unique_ptr<VertexBuffer> VertexBuffer::CreateVertexBuffer(void* buffer , unsigned int size){
+std::unique_ptr<VertexBuffer> VertexBuffer::CreateVertexBuffer(void* buffer , unsigned int size){
 
     unsigned int vbo = 0;
     GLCall(glGenBuffers(1, &vbo));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, vbo));
     GLCall(glBufferData(GL_ARRAY_BUFFER, size, buffer, GL_STATIC_DRAW));
-
     return std::unique_ptr<VertexBuffer>(new VertexBuffer(vbo, size));
 }
 

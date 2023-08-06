@@ -32,6 +32,7 @@ public:
     void SetOutline(bool isOn){_isDrawOutline = isOn;}
     int LoadTextureFromPath(const std::string& path, unsigned int type, unsigned int format);
     void PrintLoadedTextures();
+    glm::mat4 GetModelMat();
     ~Model(){}
 
 private:

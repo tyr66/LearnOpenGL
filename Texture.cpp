@@ -6,27 +6,73 @@
 #include "glad/glad.h"
 #include "help.h"
 
-Texture::Texture(unsigned int id, std::string name, unsigned int type, unsigned int format): _renderID(id), _type(type), _format(format), _name(name)
-{
+std::unique_ptr<TextureGenerator> TextureGenerator::instance = nullptr;
+bool TextureGenerator::isInit = false;
 
+bool TextureGenerator::IsLoaded(const std::string& fullName)
+{
+    return instance->_generatedMap.count(fullName) > 0;
 }
 
-Texture::~Texture()
+void TextureGenerator::Init()
 {
-    GLCall(glDeleteTextures(1, &_renderID));
+    // 初始化并加载默认的贴图
+    if (!isInit) {
+        instance.reset(new TextureGenerator());
+        isInit = true;
+
+    }
 }
 
-std::unique_ptr<Texture> Texture::CreateTexture(std::string path, std::string name, unsigned int type, unsigned int format)
+void TextureGenerator::Clear()
 {
+    instance->_generatedMap.clear();
+    instance->_textures.clear();
+    instance->id = 0;
+}
+
+Texture* TextureGenerator::GetTexture(int id)
+{
+    if (instance->_textures.count(id) > 0) {
+        return &(*instance->_textures[id].get());
+    }
+
+    return nullptr;
+}
+
+int TextureGenerator::GetTextureIndex(const std::string& fullName)
+{
+    if (instance->_generatedMap.count(fullName) > 0)
+        return instance->_generatedMap[fullName];
+
+    return -1;
+}
+
+Texture* TextureGenerator::GetTexture(const std::string& fullName)
+{
+    if (instance->_generatedMap.count(fullName) > 0)
+    {
+        return GetTexture(instance->_generatedMap[fullName]);
+    }
+    return nullptr;
+}
+
+int TextureGenerator::LoadTexture(const std::string& fullName, unsigned int type)
+{
+    if (instance->_generatedMap.count(fullName) > 0) {
+        std::cout << "[INFO] already loaded texture : " << fullName << std::endl;
+        return instance->_generatedMap[fullName];
+    }
+
     unsigned int texture = 0;
     unsigned char* data = nullptr;
     int height, width, nrChannels;
-    unsigned int fileFormat;
+    unsigned int format = 0;
 
-    data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+    data = stbi_load(fullName.c_str(), &width, &height, &nrChannels, 0);
 
     if (data == nullptr) {
-        std::cout << "failed to load texture :" << path << std::endl;
+        std::cout << "[Warning] failed to load texture :" << fullName << std::endl;
         throw std::runtime_error("");
     }
 
@@ -35,18 +81,18 @@ std::unique_ptr<Texture> Texture::CreateTexture(std::string path, std::string na
         glBindTexture(type, texture);
 
         if (nrChannels == 3) {
-            fileFormat = GL_RGB;
+            format = GL_RGB;
         }else if (nrChannels == 4) {
-            fileFormat = GL_RGBA;
+            format = GL_RGBA;
         } else {
-            std::cout << "unknow channels: " << nrChannels << std::endl;
+            std::cout << "[ERROR] texture"<< fullName << "unknow channels: " << nrChannels << std::endl;
             assert(false);
         }
 
         switch(type)
         {
             case GL_TEXTURE_2D: 
-                GLCall(glTexImage2D(type, 0, format, width, height, 0, fileFormat, GL_UNSIGNED_BYTE, data));
+                GLCall(glTexImage2D(type, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data));
                 break;
             case GL_TEXTURE_1D:
                 assert(false);
@@ -61,8 +107,26 @@ std::unique_ptr<Texture> Texture::CreateTexture(std::string path, std::string na
     stbi_image_free(data);
     GLCall(glGenerateMipmap(type));
 
-    return std::unique_ptr<Texture>(new Texture(texture, name, type, format));
+    auto ptr = std::unique_ptr<Texture>(new Texture(texture, fullName, type, format));
+
+    std::cout << "[INFO] loaded texture : " << fullName << std::endl;
+
+    instance->_generatedMap[fullName] = ++instance->id;
+    instance->_textures[instance->id] = std::move(ptr);
+    return instance->id;
 }
+
+Texture::Texture(unsigned int id, std::string name, unsigned int type, unsigned int format): _renderID(id), _type(type), _format(format), _name(name)
+{
+
+}
+
+Texture::~Texture()
+{
+    GLCall(glDeleteTextures(1, &_renderID));
+    std::cout << "[INFO] " << "delete texture :" << _name << std::endl;
+}
+
 
 void Texture::SetFiltering(unsigned int minFilter, unsigned int magFilter)
 {

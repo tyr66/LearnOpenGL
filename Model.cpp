@@ -5,11 +5,17 @@
 #include <assimp/postprocess.h>
 #include <glad/glad.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Model.h"
 #include "Shader.h"
+#include "Texture.h"
 #include "help.h"
+#include "Mesh.h"
 
+Model::Model():_position(glm::vec3(0.0f)),_rotation(glm::vec3(0.0f)),_scale(glm::vec3(1.0f)){
+
+}
 std::unique_ptr<Model> Model::CreateModel(std::string path)
 {
     auto model = std::unique_ptr<Model>(new Model());
@@ -17,28 +23,52 @@ std::unique_ptr<Model> Model::CreateModel(std::string path)
     return model;
 }
 
+std::unique_ptr<Model> Model::CreateModel(std::vector<MeshPtr>& meshs)
+{
+    auto res = std::unique_ptr<Model>(new Model());
+    res->setupModel(meshs);
+    return res;
+}
+std::unique_ptr<Model> Model::CreateModel(std::vector<MeshPtr>&& meshs)
+{
+    auto res = std::unique_ptr<Model>(new Model());
+    res->setupModel(std::move(meshs));
+    return res;
+}
+
 void Model::Draw(ShaderPtr& shader, ShaderPtr& outlineShader)
 {
+
+    // 计算出model 矩阵, 因为glm使用矩阵右乘所以需要调整矩阵的乘法顺序
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, _position);
+    model = glm::rotate(model, glm::radians(_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(_rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(_rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::scale(model, _scale);
 
     if (_isDrawOutline) {
 
         shader->Bind();
+        shader->SetMat4f("model", model);
+
         GLCall(glEnable(GL_STENCIL_TEST));
         GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
         GLCall(glStencilMask(0xFF));
         GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
         for (unsigned int i = 0; i < _meshs.size(); i++) {
-            _meshs[i].Draw(shader, _textures_loaded);
+            _meshs[i]->Draw(shader);
         }
 
         outlineShader->Bind();
+        outlineShader->SetMat4f("model", model);
         GLCall(glDisable(GL_DEPTH_TEST))
         GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
         GLCall(glStencilMask(0x00));
         outlineShader->SetFloat("outlineScale", 0.01f);
 
         for (unsigned int i = 0; i < _meshs.size(); i++) {
-            _meshs[i].Draw(outlineShader, _textures_loaded);
+            _meshs[i]->Draw(outlineShader);
         }
         
         GLCall(glStencilMask(0xFF));
@@ -48,9 +78,10 @@ void Model::Draw(ShaderPtr& shader, ShaderPtr& outlineShader)
     } else {
 
         shader->Bind();
+        shader->SetMat4f("model", model);
         for (unsigned int i = 0; i < _meshs.size(); i++)
         {
-            _meshs[i].Draw(shader, _textures_loaded);
+            _meshs[i]->Draw(shader);
         }
     }
 
@@ -58,28 +89,28 @@ void Model::Draw(ShaderPtr& shader, ShaderPtr& outlineShader)
 
 void Model::SetPos(float x, float y, float z)
 {
-    _translate += glm::vec3(x, y, z);
-    glm::mat4 translate = glm::mat4(1.0f);
-    translate = glm::translate(translate, glm::vec3(x, y, z));
-    _modelMat = translate * _modelMat;
+    _position.x = x;
+    _position.y = y;
+    _position.z = z;
+}
+
+void Model::SetPos(glm::vec3& pos)
+{
+    _position = pos;
 }
 
 void Model::SetRotation(float x, float y, float z)
 {
-    _rotation += glm::vec3(x, y, z);
-    glm::mat4 rotation = glm::mat4(1.0f);
-    rotation = glm::rotate(rotation, glm::radians(x), glm::vec3(1.0f, 0.0f, 0.0f));
-    rotation = glm::rotate(rotation, glm::radians(y), glm::vec3(0.0f, 1.0f, 0.0f));
-    rotation = glm::rotate(rotation, glm::radians(z), glm::vec3(0.0f, 0.0f, 1.0f));
-    _modelMat = rotation * _modelMat;
+    _rotation.x = x;
+    _rotation.y = y;
+    _rotation.z = z;
 }
 
 void Model::SetScale(float x, float y, float z)
 {
-    _scale *= glm::vec3(x, y, z);
-    glm::mat4 scale = glm::mat4(1.0f);
-    scale = glm::scale(scale, glm::vec3(x, y, z));
-    _modelMat = scale * _modelMat;
+    _scale.x = x;
+    _scale.y = y;
+    _scale.z = z;
 }
 
 void Model::setupVertexLayout()
@@ -103,6 +134,17 @@ void Model::setupModel(std::string path)
 
     setupVertexLayout();
     processNode(sceneobj->mRootNode, sceneobj);
+}
+
+void Model::setupModel(std::vector<MeshPtr>& meshs)
+{
+     _meshs = meshs;
+    _directory = "create by script";
+}
+void Model::setupModel(std::vector<MeshPtr>&& meshs)
+{
+    _meshs = std::move(meshs);
+    _directory = "create by script";
 }
 
 void Model::processNode(const aiNode* node, const aiScene* scene)
@@ -164,14 +206,10 @@ void Model::loadMesh(const aiMesh* aimesh, const aiScene *scene)
     auto diffuseTexs = loadTexture(material, aiTextureType::aiTextureType_DIFFUSE, TextureUsage::TEXTURE_USAGE_DIFFUSE);
     auto specularTexs = loadTexture(material, aiTextureType::aiTextureType_SPECULAR, TextureUsage::TEXTURE_USAGE_SPECULAR);
 
-    auto i = material->GetTextureCount(aiTextureType::aiTextureType_AMBIENT);
-
     textures.insert(textures.end(), diffuseTexs.begin(), diffuseTexs.end());
     textures.insert(textures.end(), specularTexs.begin(), specularTexs.end());
 
-    Mesh mesh;
-    mesh.SetupMesh(std::move(vertexs), std::move(indices), std::move(textures), _layout);
-
+    MeshPtr mesh = MeshManager::CreateMesh(std::move(vertexs), std::move(indices), std::move(textures), _layout);
     _meshs.push_back(std::move(mesh));
 }
 
@@ -183,54 +221,14 @@ std::vector<TextureIndex> Model::loadTexture(const aiMaterial* material, aiTextu
     {
         TextureIndex texIndex;
         aiString texName;
-        std::string name;
-        bool isGenerated = false;
+        std::string fullName;
 
         material->GetTexture(textureType, i, &texName);
-        name = texName.C_Str();
-
-        for (unsigned int j = 0; j < _textures_loaded.size(); j++) {
-
-            if (name == _textures_loaded[j]->GetName())
-            {
-                // 该贴图已经被加载
-                texIndex.usage = usage;
-                texIndex.idx = j;
-                isGenerated = true;
-                std::cout << "find a loaded texture" << std::endl;
-                break;
-            }
-        }
-
-        if (!isGenerated) {
-            // 该贴图还没有创建
-            std::string path = _directory + '/'+ texName.C_Str();
-            auto tex = Texture::CreateTexture(path, name,  GL_TEXTURE_2D, GL_RGB);
-
-            std::cout << "load a texture name: " << tex->GetName() << std::endl;
-
-            _textures_loaded.push_back(std::move(tex));
-            texIndex.idx = _textures_loaded.size() - 1;
-            texIndex.usage = usage;
-
-        }
-
+        fullName = _directory + '/' + texName.C_Str();
+        texIndex.idx = TextureGenerator::LoadTexture(fullName, GL_TEXTURE_2D);
+        texIndex.usage = usage;
         res.push_back(texIndex);
     }
 
     return res;
 }
-
-void Model::PrintLoadedTextures()
-{
-    for (int i = 0; i < _textures_loaded.size(); i++)
-    {
-         std::cout << "loaded texture name: " << _textures_loaded[i]->GetName() << std::endl;
-    }
-}
-
-glm::mat4 Model::GetModelMat()
-{
-    return _modelMat;
-}
-

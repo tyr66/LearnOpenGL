@@ -12,7 +12,6 @@ std::unique_ptr<IndiceBuffer> IndiceBuffer::CreateIndiceBuffer(unsigned int* buf
     GLCall(glGenBuffers(1, &indiceBufferID));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indiceBufferID));
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * count, buffer, GL_STATIC_DRAW));
-
     return std::unique_ptr<IndiceBuffer>(new IndiceBuffer(indiceBufferID, count));
 }
 
