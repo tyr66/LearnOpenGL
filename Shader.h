@@ -36,7 +36,7 @@ private:
 
 public:
     static void Init();
-    static ShaderPtr CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence);
+    static ShaderPtr CreateShader(const std::string& shaderName, const std::string& vsPath, const std::string& fsPath, const std::string& gsPath = "", bool isPresistence = true);
     static void DeleteShader(std::string shaderName);
 
     static bool IsEmpty() {return instance->_shaders.empty();}

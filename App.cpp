@@ -63,11 +63,11 @@ void App::clear()
 void App::test()
 {
     {
-        auto modelShader = ShaderGenerator::CreateShader("modelShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", false);
-        auto outlineShader = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", true);
+        auto modelShader = ShaderGenerator::CreateShader("modelShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader","", false);
+        auto outlineShader = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", "", true);
 
-        auto modelShader1 = ShaderGenerator::CreateShader("modelShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", false);
-        auto outlineShader1 = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", true);
+        auto modelShader1 = ShaderGenerator::CreateShader("modelShader", "./shaders/model_vert.shader", "./shaders/model_frag.shader", "", false);
+        auto outlineShader1 = ShaderGenerator::CreateShader("outlineShader", "./shaders/outline_vert.shader", "./shaders/outline_frag.shader", "", true);
     }
 
     ShaderGenerator::show();
@@ -94,12 +94,6 @@ void App::run()
     glm::mat4 view;
     glm::mat4 skyboxView;
 
-    glm::vec3 planePosition = glm::vec3(0.0f, -0.5f, 0.0f);
-    glm::vec3 cuebPositions[] = {
-        glm::vec3(-1.0f, 0.0f, -1.0f),
-        glm::vec3(2.0f, 0.0f, 0.0f)
-    };
-
     // 加载天空盒
     std::vector<std::string> cubemapFaces = {
         "./textures/skybox/right.jpg",
@@ -109,14 +103,19 @@ void App::run()
         "./textures/skybox/front.jpg",
         "./textures/skybox/back.jpg"
     };
+
     TextureIndex skybox;
     skybox.usage = TextureUsage::TEXTURE_USAGE_SKYBOX;
     skybox.idx = TextureManager::LoadCubeMap("skybox", cubemapFaces);
 
-
     TextureIndex screenTex;
     screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     screenTex.idx = TextureManager::CreateTexture("framebuffer", GL_TEXTURE_2D, GL_RGB, _width, _height);
+
+    TextureIndex boxTex;
+    boxTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    boxTex.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
+
 
     // 创建网格
     auto skyboxCube = GeometryGenerator::generateSkyBox();
@@ -124,14 +123,18 @@ void App::run()
     auto screenQuad = GeometryGenerator::generateQuad();
     screenQuad->SetTexture(screenTex);
 
+    auto box = GeometryGenerator::generateCube();
+    box->SetTexture(boxTex);
+
     // 加载模型
     auto bag = Model::CreateModel("./models/survival-guitar/backpack.obj");
     bag->SetPos(0.0f, 0.0f, -1.0f);
 
     // 创建着色器
-    auto skyboxShader = ShaderGenerator::CreateShader("skyboxShader", "./shaders/skybox_vert.shader", "./shaders/skybox_frag.shader", true);
-    auto scenseShader = ShaderGenerator::CreateShader("scenseShader" ,"./shaders/reflect_refraction_vert.shader", "./shaders/reflect_refraction_frag.shader", true);
-    auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader", true);
+    auto skyboxShader = ShaderGenerator::CreateShader("skyboxShader", "./shaders/skybox_vert.shader", "./shaders/skybox_frag.shader");
+    auto scenseShader = ShaderGenerator::CreateShader("scenseShader" ,"./shaders/texture_vert.shader", "./shaders/texture_frag.shader");
+    auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader");
+    auto normalShader = ShaderGenerator::CreateShader("normalShader", "./shaders/normal_vert.shader", "./shaders/normal_frag.shader", "./shaders/normal_ge.shader");
 
     // 创建framebuffer
     unsigned int fbo;
@@ -157,9 +160,6 @@ void App::run()
     GLCall(glCullFace(GL_BACK));
     GLCall(glFrontFace(GL_CCW));
 
-    scenseShader->Bind();
-    scenseShader->SetGobalTexture("skybox", TextureManager::GetTexture(skybox.idx));
-
     skyboxShader->Bind();
     skyboxShader->SetGobalTexture("skybox", TextureManager::GetTexture(skybox.idx));
 
@@ -178,6 +178,9 @@ void App::run()
         proj = glm::perspective(glm::radians(camera.GetFov()), _width / (float)_height, 0.1f, 100.0f);
         view = camera.GetViewMat4();
 
+        model = glm::mat4(1.0f);
+        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+
         // 绘制天空盒
         GLCall(glDepthFunc(GL_LEQUAL));
         skyboxView = glm::mat4(glm::mat3(view)); // 让skybox永远位于摄像机中心
@@ -191,8 +194,16 @@ void App::run()
         scenseShader->Bind();
         scenseShader->SetMat4f("proj", proj);
         scenseShader->SetMat4f("view", view);
-        scenseShader->SetVec3f("viewPos", camera.GetPos());
-        bag->Draw(scenseShader);
+        scenseShader->SetMat4f("model", model);
+        // bag->Draw(scenseShader);
+        box->Draw(scenseShader);
+
+        normalShader->Bind();
+        normalShader->SetMat4f("proj", proj);
+        normalShader->SetMat4f("view", view);
+        normalShader->SetMat4f("model", model);
+        // bag->Draw(normalShader);
+        box->Draw(normalShader);
 
         GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         GLCall(glDisable(GL_DEPTH_TEST));

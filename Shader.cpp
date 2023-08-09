@@ -90,26 +90,35 @@ void ShaderGenerator::Init()
     }
 }
 
-ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPath, std::string fsPath, bool isPresistence)
+ShaderPtr ShaderGenerator::CreateShader(const std::string& shaderName, const std::string& vsPath, const std::string& fsPath, const std::string& gsPath, bool isPresistence)
 {
     if (instance->_shaders.count(shaderName) > 0) {
-        std::cout << "shader : " << shaderName << " is already existed" << std::endl; 
+        std::cout << "[INFO] shader : " << shaderName << " is already existed" << std::endl; 
         return ShaderPtr(instance->_shaders[shaderName]);
     }
 
     char* infoLog;
     unsigned int shaderID;
-    unsigned int vertexShader = 0, fragmentShader = 0;
+    unsigned int vertexShader = 0, fragmentShader = 0, geometryShader = 0;
 	int successed = 0;
 
     try{
 
         vertexShader = compileShader(GL_VERTEX_SHADER, vsPath.c_str());
         fragmentShader = compileShader(GL_FRAGMENT_SHADER, fsPath.c_str());
+        if (!gsPath.empty()) {
+            geometryShader = compileShader(GL_GEOMETRY_SHADER, gsPath.c_str());
+        }
+
         shaderID = GLCall(glCreateProgram());
 
         GLCall(glAttachShader(shaderID, vertexShader));
         GLCall(glAttachShader(shaderID, fragmentShader));
+
+        if (geometryShader != 0) {
+            GLCall(glAttachShader(shaderID, geometryShader));
+        }
+
         glLinkProgram(shaderID);
         GLCall(glGetProgramiv(shaderID, GL_LINK_STATUS, &successed));
         if (!successed) {
@@ -121,10 +130,15 @@ ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPa
         }
     } catch(std::exception& e)
     {
-        if (vertexShader != 0)
+        if (vertexShader != 0) {
             GLCall(glDeleteShader(vertexShader));
-        if (fragmentShader != 0)
+        }
+        if (fragmentShader != 0) {
             GLCall(glDeleteShader(fragmentShader));
+        }
+        if (geometryShader != 0) {
+            GLCall(glDeleteShader(geometryShader));
+        }
         std::cout << e.what() << std::endl;
         throw e;
     }
@@ -132,8 +146,12 @@ ShaderPtr ShaderGenerator::CreateShader(std::string shaderName, std::string vsPa
     GLCall(glDeleteShader(vertexShader));
     GLCall(glDeleteShader(fragmentShader));
 
+    if (geometryShader != 0) {
+        GLCall(glDeleteShader(geometryShader));
+    }
+
     instance->_shaders[shaderName] = std::shared_ptr<Shader>(new Shader(shaderID, shaderName, isPresistence));
-    std::cout << "create is new Shader : " << shaderName << std::endl;
+    std::cout << "[INFO] create is new Shader : " << shaderName << std::endl;
     return instance->_shaders[shaderName];
 }
 
