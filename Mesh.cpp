@@ -74,9 +74,10 @@ void Mesh::Draw(ShaderPtr& shader)
         case TextureUsage::TEXTURE_USAGE_SPECULAR:
             name += Shader::SpecularTexturePrefix + std::to_string(specular_id++);
             break;
+        default:
+            assert(false);
         }
-		shader->SetInt(name, i);
-		tex->Bind();
+        shader->SetTexture(name, tex);
     }
 
     if (diffuse_id == 0) {
@@ -100,6 +101,7 @@ void Mesh::Draw(ShaderPtr& shader)
     GLCall(glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0));
     _ebo->Unbind();
     _vao->Unbind();
+    shader->ResetTexture();
 }
 
 

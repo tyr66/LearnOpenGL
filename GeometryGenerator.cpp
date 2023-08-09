@@ -139,3 +139,55 @@ MeshPtr GeometryGenerator::generateQuad()
     return MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(textures), layout);
 }
 
+MeshPtr GeometryGenerator::generateSkyBox()
+{
+    std::vector<Vertex> verts;
+    std::vector<TextureIndex> textures;
+
+    verts.push_back({-1.0f, 1.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+    verts.push_back({ 1.0f, 1.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+    verts.push_back({-1.0f, -1.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+    verts.push_back({ 1.0f, -1.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+
+    verts.push_back({-1.0f, 1.0f, -1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+    verts.push_back({ 1.0f, 1.0f, -1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+    verts.push_back({-1.0f, -1.0f,-1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+    verts.push_back({ 1.0f, -1.0f,-1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f});
+
+
+    std::vector<unsigned int> indices = {
+
+        // 前面
+        0, 3, 2,
+        0, 1, 3,
+
+        // 背面
+        4, 6, 7,
+        4, 7, 5,
+
+        // 顶面
+        4, 1, 0,
+        4, 5, 1,
+
+        // 底面
+        6, 2, 3,
+        6, 3, 7,
+
+        // 左面
+        0, 2, 6, 
+        0, 6, 4,
+
+        // 右面
+        5, 7, 3,
+        5, 3, 1,
+    };
+
+    VertexBufferLayout layout;
+    layout.push<float>(3);
+    layout.push<float>(3);
+    layout.push<float>(2);
+
+
+    MeshPtr ptr = MeshManager::CreateMesh(verts, indices, textures, layout);
+    return ptr;
+}

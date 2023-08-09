@@ -10,6 +10,8 @@ out vec4 FragColor;
 
 uniform Material material;
 
+vec3 diffuse();
+
 // 颜色反转
 vec3 inversion();
 // 灰度
@@ -25,9 +27,13 @@ vec3 edgeDetection();
 
 void main()
 {
-    FragColor = vec4(edgeDetection(), 1.0);
+    FragColor = vec4(diffuse(), 1.0);
 }
 
+vec3 diffuse()
+{
+    return texture(material.texture_diffuse0, TexCoord).rgb;
+}
 
 vec3 inversion()
 {

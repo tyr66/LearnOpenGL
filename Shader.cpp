@@ -263,6 +263,27 @@ void Shader::SetVec3f(const std::string& name, const glm::vec3& v)
     }
     GLCall(glUniform3f(location, v.x, v.y, v.z));
 }
+void Shader::SetTexture(const std::string& name, Texture* tex)
+{
+    if (tex == nullptr)
+        return;
+
+    SetInt(name, _gobalTexIdx + _textureIdx++);
+    tex->Bind();
+
+}
+void Shader::SetGobalTexture(const std::string& name, Texture* tex)
+{
+    if (tex == nullptr)
+        return;
+
+    SetInt(name, _gobalTexIdx++);
+    tex->Bind();
+}
+void Shader::ResetTexture()
+{
+    _textureIdx = 0;
+}
 void Shader::SetDirectionalLight(const DirectionalLight& light)
 {
     std::string prefix = this->GetDirectionLightPrefix(_directionalLightIdx++);

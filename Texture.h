@@ -37,6 +37,7 @@ public:
     static Texture* GetTexture(int id);
     static Texture* GetTexture(const std::string& fullName);
     static int LoadTexture(const std::string& fullName, unsigned int type);
+    static int LoadCubeMap(const std::string&name, const std::vector<std::string>& facesPath);
     static int CreateTexture(const std::string& texName, unsigned int type, unsigned int format, unsigned int w, unsigned int h, void* data = nullptr);
     static int GetTextureIndex(const std::string& fullName);
     static int GetTextureRenderID(int id);

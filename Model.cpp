@@ -13,7 +13,7 @@
 #include "help.h"
 #include "Mesh.h"
 
-Model::Model():_position(glm::vec3(0.0f)),_rotation(glm::vec3(0.0f)),_scale(glm::vec3(1.0f)){
+Model::Model():_position(glm::vec3(0.0f)),_rotation(glm::vec3(0.0f)),_scale(glm::vec3(1.0f)), _outlineShader(nullptr){
 
 }
 std::unique_ptr<Model> Model::CreateModel(std::string path)
@@ -36,7 +36,7 @@ std::unique_ptr<Model> Model::CreateModel(std::vector<MeshPtr>&& meshs)
     return res;
 }
 
-void Model::Draw(ShaderPtr& shader, ShaderPtr& outlineShader)
+void Model::Draw(ShaderPtr& shader)
 {
 
     // 计算出model 矩阵, 因为glm使用矩阵右乘所以需要调整矩阵的乘法顺序
@@ -60,15 +60,15 @@ void Model::Draw(ShaderPtr& shader, ShaderPtr& outlineShader)
             _meshs[i]->Draw(shader);
         }
 
-        outlineShader->Bind();
-        outlineShader->SetMat4f("model", model);
+        _outlineShader->Bind();
+        _outlineShader->SetMat4f("model", model);
         GLCall(glDisable(GL_DEPTH_TEST))
         GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
         GLCall(glStencilMask(0x00));
-        outlineShader->SetFloat("outlineScale", 0.01f);
+        _outlineShader->SetFloat("outlineScale", 0.01f);
 
         for (unsigned int i = 0; i < _meshs.size(); i++) {
-            _meshs[i]->Draw(outlineShader);
+            _meshs[i]->Draw(_outlineShader);
         }
         
         GLCall(glStencilMask(0xFF));

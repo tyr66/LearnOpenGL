@@ -9,6 +9,7 @@
 #include "Texture.h"
 #include "VertexArray.h"
 #include "Mesh.h"
+#include "Shader.h"
 
 struct TextureIndex;
 class ShaderPtr;
@@ -24,7 +25,7 @@ public:
     static std::unique_ptr<Model> CreateModel(std::vector<MeshPtr>& meshs);
     static std::unique_ptr<Model> CreateModel(std::vector<MeshPtr>&& meshs);
 
-    void Draw(ShaderPtr& shader, ShaderPtr& outlineShader);
+    void Draw(ShaderPtr& shader);
     void SetPos(float x, float y, float z);
     void SetPos(glm::vec3& pos);
     void SetRotation(float x, float y, float z);
@@ -45,6 +46,7 @@ private:
     std::vector<TextureIndex> loadTexture(const aiMaterial* material, aiTextureType textureType, TextureUsage usage);
 
     VertexBufferLayout _layout;
+    ShaderPtr _outlineShader;
     std::vector<MeshPtr> _meshs;
     std::string _directory;
     glm::vec3 _position;

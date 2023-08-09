@@ -118,6 +118,58 @@ int TextureManager::LoadTexture(const std::string& fullName, unsigned int type)
     return instance->id;
 }
 
+int TextureManager::LoadCubeMap(const std::string& name, const std::vector<std::string>& facePath)
+{
+    stbi_set_flip_vertically_on_load(false);
+    if (instance->_generatedMap.count(name) > 0) {
+        std::cout << "[INFO] already loaded cube map : " << name << std::endl;
+        return instance->_generatedMap[name];
+    }
+
+    unsigned int texture = 0;
+    unsigned char* data = nullptr;
+    int height, width, nrChannels;
+    unsigned int format = 0;
+
+    GLCall(glGenTextures(1, &texture));
+    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, texture));
+
+    int i = 0;
+    for (const auto& path : facePath)
+    {
+        data = stbi_load(path.c_str(), &width ,&height, &nrChannels, 0);
+
+        if (!data) {
+            GLCall(glDeleteTextures(1, &texture));
+            std::cout << "[ERROR] failed to load cube map face : " << path <<std::endl;
+            throw std::runtime_error("");
+        }
+
+        switch (nrChannels) {
+            case 1: format = GL_RED; break;
+            case 3: format = GL_RGB; break;
+            case 4: format = GL_RGBA; break;
+            default: assert(false);
+        }
+
+        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data));
+        stbi_image_free(data);
+        i++;
+    }
+
+    stbi_set_flip_vertically_on_load(true);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    instance->_generatedMap[name] = ++instance->id;
+    instance->_textures[instance->id] = std::unique_ptr<Texture>(new Texture(texture, name, GL_TEXTURE_CUBE_MAP, format));
+    return instance->id;
+}
+
+
 int TextureManager::GetTextureRenderID(int id)
 {
     return instance->_textures[id]->_renderID;
@@ -185,7 +237,7 @@ void Texture::SetWrapping(unsigned int wrap_s, unsigned int wrap_t)
 
 void Texture::BindAndActive(unsigned int unit)
 {
-    GLCall(glActiveTexture(unit));
+    GLCall(glActiveTexture(GL_TEXTURE0 + unit));
     Bind();
 }
 
