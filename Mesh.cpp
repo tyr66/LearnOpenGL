@@ -51,6 +51,58 @@ Mesh* MeshPtr::operator->()
     return _mesh;
 }
 
+void Mesh::DrawInstancing(ShaderPtr& shader, unsigned int count)
+{
+
+    //TODO 设置贴图
+    unsigned int diffuse_id = 0;
+    unsigned int specular_id = 0;
+
+    for (unsigned int i = 0; i < textures.size(); i++)
+    {
+        GLCall(glActiveTexture(GL_TEXTURE0 + i));
+		std:: string name = "material.";
+        auto& texIdx = textures[i];
+        auto tex = TextureManager::GetTexture(texIdx.idx);
+
+        switch (texIdx.usage)
+        {
+        case TextureUsage::TEXTURE_USAGE_DIFFUSE:
+            name += Shader::DiffuseTexturePrefix + std::to_string(diffuse_id++);
+            break;
+        case TextureUsage::TEXTURE_USAGE_SPECULAR:
+            name += Shader::SpecularTexturePrefix + std::to_string(specular_id++);
+            break;
+        default:
+            assert(false);
+        }
+        shader->SetTexture(name, tex);
+    }
+
+    if (diffuse_id == 0) {
+        //std::cout << "[WARNING] mesh dont have diffuse texture, so just default diffuse color" << std::endl;
+        shader->SetInt("material.enableDiffuse", 0);
+    }else {
+        shader->SetInt("material.enableDiffuse", 1);
+
+    }
+
+    if (specular_id == 0) {
+        // 采用默认的高光贴图
+        //std::cout << "[INFO] mesh dont have specular texture, so just disable specular" << std::endl;
+        shader->SetInt("material.enableSpecular", 0);
+    } else {
+        shader->SetInt("material.enableSpecular", 1);
+    }
+
+    _vao->Bind();
+    _ebo->Bind();
+    GLCall(glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0, count));
+    _ebo->Unbind();
+    _vao->Unbind();
+    shader->ResetTexture();
+}
+
 
 void Mesh::Draw(ShaderPtr& shader)
 {
@@ -158,3 +210,17 @@ void Mesh::SetTexture(TextureIndex texIndex)
     textures.push_back(texIndex);
 }
 
+void Mesh::SetVertexLayout(const VertexBufferLayout& layout, VertexBuffer* buffer)
+{
+    if (buffer == nullptr)
+        return;
+
+    _vao->Bind();
+    buffer->Bind();
+
+    _vao->AddBuffer(*buffer, layout);
+
+    buffer->Unbind();
+    _vao->Unbind();
+
+}

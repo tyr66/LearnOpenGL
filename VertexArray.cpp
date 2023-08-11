@@ -3,6 +3,8 @@
 #include "glad/glad.h"
 #include "VertexBuffer.h"
 
+#include <glm/glm.hpp>
+
 unsigned int ElementLayout::getTypeSize() const
 {
     switch(type)
@@ -54,9 +56,9 @@ void VertexArray::AddBuffer(const VertexBuffer& vertexBuffer, const VertexBuffer
     for(unsigned int i = 0; i< elements.size(); i++)
     {
         auto& element = elements[i];
-        GLCall(glVertexAttribPointer(i, element.count, element.type, element.normalized ? GL_TRUE : GL_FALSE, layout.getStride(), (void*)offset));
-        GLCall(glEnableVertexAttribArray(i));
-
+        GLCall(glVertexAttribPointer(element.idx, element.count, element.type, element.normalized ? GL_TRUE : GL_FALSE, layout.getStride(), (void*)offset));
+        GLCall(glEnableVertexAttribArray(element.idx));
+        GLCall(glVertexAttribDivisor(element.idx, element.divisor));
         offset += element.count * element.getTypeSize();
     }
 }
@@ -70,29 +72,30 @@ void push(unsigned int count)
 }
 
 template<>
-void VertexBufferLayout::push<float>(unsigned int count)
+void VertexBufferLayout::push<float>(unsigned int count, unsigned int bindpoint, unsigned int divisor)
 {
-    ElementLayout layout = {GL_FLOAT, count, false};
+    ElementLayout layout = {GL_FLOAT, count, false, bindpoint, divisor};
+    _stride += layout.getTypeSize() * count;
+    _elements.push_back(std::move(layout));
+
+}
+
+template<>
+void VertexBufferLayout::push<unsigned int>(unsigned int count, unsigned int bindpoint, unsigned int divisor)
+{
+    ElementLayout layout = {GL_UNSIGNED_INT, count, false, bindpoint, divisor};
     _stride += layout.getTypeSize() * count;
     _elements.push_back(std::move(layout));
 }
 
 template<>
-void VertexBufferLayout::push<unsigned int>(unsigned int count)
+void VertexBufferLayout::push<unsigned char>(unsigned int count, unsigned int bindpoint, unsigned int divisor)
 {
-    ElementLayout layout = {GL_UNSIGNED_INT, count, false};
+    ElementLayout layout = {GL_UNSIGNED_BYTE, count, true, bindpoint, divisor};
     _stride += layout.getTypeSize() * count;
     _elements.push_back(std::move(layout));
 }
 
-template<>
-void VertexBufferLayout::push<unsigned char>(unsigned int count)
-{
-    ElementLayout layout = {GL_UNSIGNED_BYTE, count, true};
-    _stride += layout.getTypeSize() * count;
-    _elements.push_back(std::move(layout));
-}
-
-template void VertexBufferLayout::push<float>(unsigned int count);
-template void VertexBufferLayout::push<unsigned int>(unsigned int count);
-template void VertexBufferLayout::push<unsigned char>(unsigned int count);
+template void VertexBufferLayout::push<float>(unsigned int count, unsigned int bindpoint, unsigned int divisor = 0);
+template void VertexBufferLayout::push<unsigned int>(unsigned int count, unsigned int bindpoint, unsigned int divisor = 0);
+template void VertexBufferLayout::push<unsigned char>(unsigned int count, unsigned int bindpoint, unsigned int divisor = 0);

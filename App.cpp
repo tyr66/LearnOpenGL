@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <cstdlib>
 #include <stdexcept>
 #include <functional>
 #include <glad/glad.h>
@@ -116,6 +117,43 @@ void App::run()
     boxTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     boxTex.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
 
+    // 创建rock的model 矩阵buffer
+    unsigned int amount = 1000;
+    glm::mat4 *rockModels = new glm::mat4[amount];
+
+    std::srand(glfwGetTime());
+    float radians = 10.0f;
+    float offset = 2.5f;
+
+    for (unsigned int i = 0; i < amount; i++) {
+        glm::mat4 model = glm::mat4(1.0f);
+
+        float angle = (float)i / amount * 360.0f;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x = std::sin(angle) * radians + displacement;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y = displacement * 0.4f;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = std::cos(angle) * radians + displacement;
+
+        model = glm::translate(model, glm::vec3(x, y, z));
+
+        float rotAngle = (rand() % 360);
+        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        float scale = (rand() % 20) / 100.0f + 0.05;
+        model = glm::scale(model, glm::vec3(scale));
+
+        rockModels[i] = model;
+    }
+
+    VertexBufferLayout rockLayout;
+    rockLayout.push<float>(4, 3, 1);
+    rockLayout.push<float>(4, 4, 1);
+    rockLayout.push<float>(4, 5, 1);
+    rockLayout.push<float>(4, 6, 1);
+
+    auto rockModelVertexBuffer = VertexBuffer::CreateVertexBuffer(rockModels, sizeof(glm::mat4) * amount);
 
     // 创建网格
     auto skyboxCube = GeometryGenerator::generateSkyBox();
@@ -123,18 +161,17 @@ void App::run()
     auto screenQuad = GeometryGenerator::generateQuad();
     screenQuad->SetTexture(screenTex);
 
-    auto box = GeometryGenerator::generateCube();
-    box->SetTexture(boxTex);
-
-    // 加载模型
-    auto bag = Model::CreateModel("./models/survival-guitar/backpack.obj");
-    bag->SetPos(0.0f, 0.0f, -1.0f);
+    auto rock = Model::CreateModel("./models/rock/rock.obj");
+    rock->SetScale(0.1, 0.1, 0.1);
+    rock->SetVertexLayout(rockLayout, rockModelVertexBuffer.get());
+    auto planet = Model::CreateModel("./models/planet/planet.obj");
+    planet->SetPos(0,0,0);
 
     // 创建着色器
     auto skyboxShader = ShaderGenerator::CreateShader("skyboxShader", "./shaders/skybox_vert.shader", "./shaders/skybox_frag.shader");
-    auto scenseShader = ShaderGenerator::CreateShader("scenseShader" ,"./shaders/texture_vert.shader", "./shaders/texture_frag.shader");
+    auto planetShader = ShaderGenerator::CreateShader("planetShader" ,"./shaders/texture_vert.shader", "./shaders/texture_frag.shader");
+    auto rockShader = ShaderGenerator::CreateShader("rockShader", "./shaders/rock_vert.shader", "./shaders/texture_frag.shader");
     auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader");
-    auto normalShader = ShaderGenerator::CreateShader("normalShader", "./shaders/normal_vert.shader", "./shaders/normal_frag.shader", "./shaders/normal_ge.shader");
 
     // 创建framebuffer
     unsigned int fbo;
@@ -188,22 +225,17 @@ void App::run()
         skyboxShader->SetMat4f("view", skyboxView);
         skyboxShader->SetMat4f("proj", proj);
         skyboxCube->Draw(skyboxShader);
-
         GLCall(glDepthFunc(GL_LESS));
 
-        scenseShader->Bind();
-        scenseShader->SetMat4f("proj", proj);
-        scenseShader->SetMat4f("view", view);
-        scenseShader->SetMat4f("model", model);
-        // bag->Draw(scenseShader);
-        box->Draw(scenseShader);
+        planetShader->Bind();
+        planetShader->SetMat4f("proj", proj);
+        planetShader->SetMat4f("view", view);
+        planet->Draw(planetShader);
 
-        normalShader->Bind();
-        normalShader->SetMat4f("proj", proj);
-        normalShader->SetMat4f("view", view);
-        normalShader->SetMat4f("model", model);
-        // bag->Draw(normalShader);
-        box->Draw(normalShader);
+        rockShader->Bind();
+        rockShader->SetMat4f("proj", proj);
+        rockShader->SetMat4f("view", view);
+        rock->DrawInstancing(rockShader, amount);
 
         GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         GLCall(glDisable(GL_DEPTH_TEST));
@@ -219,6 +251,8 @@ void App::run()
         glfwPollEvents();
         glfwSwapBuffers(_window);
     }
+
+    delete[] rockModels;
 }
 
 void App::initGlfw()

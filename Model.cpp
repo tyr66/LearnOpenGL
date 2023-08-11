@@ -87,6 +87,57 @@ void Model::Draw(ShaderPtr& shader)
 
 }
 
+void Model::DrawInstancing(ShaderPtr& shader, unsigned int count)
+{
+    // // 计算出model 矩阵, 因为glm使用矩阵右乘所以需要调整矩阵的乘法顺序
+    // glm::mat4 model = glm::mat4(1.0f);
+    // model = glm::translate(model, _position);
+    // model = glm::rotate(model, glm::radians(_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    // model = glm::rotate(model, glm::radians(_rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    // model = glm::rotate(model, glm::radians(_rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    // model = glm::scale(model, _scale);
+    //
+    if (_isDrawOutline) {
+
+        assert(false);
+        shader->Bind();
+        // shader->SetMat4f("model", model);
+
+        GLCall(glEnable(GL_STENCIL_TEST));
+        GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+        GLCall(glStencilMask(0xFF));
+        GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+        for (unsigned int i = 0; i < _meshs.size(); i++) {
+            _meshs[i]->DrawInstancing(shader, count);
+        }
+
+        _outlineShader->Bind();
+        // _outlineShader->SetMat4f("model", model);
+        GLCall(glDisable(GL_DEPTH_TEST))
+        GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
+        GLCall(glStencilMask(0x00));
+        _outlineShader->SetFloat("outlineScale", 0.01f);
+
+        for (unsigned int i = 0; i < _meshs.size(); i++) {
+            _meshs[i]->DrawInstancing(_outlineShader, count);
+        }
+        
+        GLCall(glStencilMask(0xFF));
+        GLCall(glEnable(GL_DEPTH_TEST));
+        GLCall(glDisable(GL_STENCIL_TEST));
+
+    } else {
+
+        shader->Bind();
+        // shader->SetMat4f("model", model);
+        for (unsigned int i = 0; i < _meshs.size(); i++)
+        {
+            _meshs[i]->DrawInstancing(shader, count);
+        }
+    }
+
+}
+
 void Model::SetPos(float x, float y, float z)
 {
     _position.x = x;
@@ -115,9 +166,9 @@ void Model::SetScale(float x, float y, float z)
 
 void Model::setupVertexLayout()
 {
-    _layout.push<float>(3); // pos
-    _layout.push<float>(3); // normal
-    _layout.push<float>(2); // texcoord
+    _layout.push<float>(3, 0); // pos
+    _layout.push<float>(3, 1); // normal
+    _layout.push<float>(2, 2); // texcoord
 }
 
 void Model::setupModel(std::string path)
@@ -232,3 +283,15 @@ std::vector<TextureIndex> Model::loadTexture(const aiMaterial* material, aiTextu
 
     return res;
 }
+
+void Model::SetVertexLayout(const VertexBufferLayout& layout, VertexBuffer* buffer)
+{
+    if (buffer == nullptr)
+        return;
+
+    for (unsigned int i = 0; i < _meshs.size(); i++) {
+        _meshs[i]->SetVertexLayout(layout, buffer);
+    }
+}
+
+

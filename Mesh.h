@@ -45,9 +45,10 @@ struct TextureIndex
 class Mesh {
 public:
     void Draw(ShaderPtr& shader);
+    void DrawInstancing(ShaderPtr& shader, unsigned int count);
 
     void SetTexture(TextureIndex texIndex);
-
+    void SetVertexLayout(const VertexBufferLayout& layout, VertexBuffer* buffer);
     std::vector<Vertex> vertexs;
     std::vector<unsigned int> indices;
     std::vector<TextureIndex> textures;

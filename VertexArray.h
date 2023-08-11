@@ -13,6 +13,8 @@ struct ElementLayout {
     unsigned int type;
     unsigned int count;
     bool normalized;
+    unsigned int idx;
+    unsigned int divisor;
 
     unsigned int getTypeSize() const;
 };
@@ -22,7 +24,7 @@ public:
     const std::vector<ElementLayout>& getElements()const {return _elements;}
     unsigned int getStride() const {return _stride;}
     template<typename T>
-    void push(unsigned int count);
+    void push(unsigned int count, unsigned int bindpoint, unsigned int divisor = 0);
 
 
 private:

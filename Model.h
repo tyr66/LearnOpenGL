@@ -26,11 +26,13 @@ public:
     static std::unique_ptr<Model> CreateModel(std::vector<MeshPtr>&& meshs);
 
     void Draw(ShaderPtr& shader);
+    void DrawInstancing(ShaderPtr& shader, unsigned int count);
     void SetPos(float x, float y, float z);
     void SetPos(glm::vec3& pos);
     void SetRotation(float x, float y, float z);
     void SetScale(float x, float y, float z);
     void SetOutline(bool isOn){_isDrawOutline = isOn;}
+    void SetVertexLayout(const VertexBufferLayout& layout, VertexBuffer* buffer);
     int LoadTextureFromPath(const std::string& path, unsigned int type, unsigned int format);
     void PrintLoadedTextures();
     ~Model(){}

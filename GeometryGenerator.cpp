@@ -71,9 +71,9 @@ MeshPtr GeometryGenerator::generateCube()
     };
 
     VertexBufferLayout layout;
-    layout.push<float>(3);
-    layout.push<float>(3);
-    layout.push<float>(2);
+    layout.push<float>(3, 0);
+    layout.push<float>(3, 1);
+    layout.push<float>(2, 2);
 
     std::vector<TextureIndex> texIdxs;
 
@@ -89,9 +89,9 @@ MeshPtr GeometryGenerator::generatePlane()
         0, 3, 1
     };
     VertexBufferLayout layout;
-    layout.push<float>(3);
-    layout.push<float>(3);
-    layout.push<float>(2);
+    layout.push<float>(3, 0);
+    layout.push<float>(3, 1);
+    layout.push<float>(2, 2);
 
     verts.push_back({-1.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,   0.0f, 0.0f});
     verts.push_back({ 1.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f});
@@ -132,9 +132,9 @@ MeshPtr GeometryGenerator::generateQuad()
         0, 2, 1,
     };
 
-    layout.push<float>(3);
-    layout.push<float>(3);
-    layout.push<float>(2);
+    layout.push<float>(3, 0);
+    layout.push<float>(3, 1);
+    layout.push<float>(2, 2);
 
     return MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(textures), layout);
 }
@@ -183,9 +183,9 @@ MeshPtr GeometryGenerator::generateSkyBox()
     };
 
     VertexBufferLayout layout;
-    layout.push<float>(3);
-    layout.push<float>(3);
-    layout.push<float>(2);
+    layout.push<float>(3, 0);
+    layout.push<float>(3, 1);
+    layout.push<float>(2, 2);
 
 
     MeshPtr ptr = MeshManager::CreateMesh(verts, indices, textures, layout);
