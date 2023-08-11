@@ -109,51 +109,22 @@ void App::run()
     skybox.usage = TextureUsage::TEXTURE_USAGE_SKYBOX;
     skybox.idx = TextureManager::LoadCubeMap("skybox", cubemapFaces);
 
-    TextureIndex screenTex;
-    screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
-    screenTex.idx = TextureManager::CreateTexture("framebuffer", GL_TEXTURE_2D, GL_RGB, _width, _height);
+    TextureIndex framebufferTex;
+    framebufferTex.usage = TextureUsage::TEXTURE_USAGE_FRAMEBUFFER;
+    framebufferTex.idx = TextureManager::CreateTexture("multiSampler",GL_TEXTURE_2D_MULTISAMPLE, GL_RGB, _width, _height);
+
+    TextureIndex intermediateTex;
+    intermediateTex.usage = TextureUsage::TEXTURE_USAGE_FRAMEBUFFER;
+    intermediateTex.idx = TextureManager::CreateTexture("intermediate", GL_TEXTURE_2D, GL_RGB, _width, _height);
 
     TextureIndex boxTex;
     boxTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     boxTex.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
 
-    // 创建rock的model 矩阵buffer
-    unsigned int amount = 1000;
-    glm::mat4 *rockModels = new glm::mat4[amount];
+    TextureIndex screenTex;
+    screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    screenTex.idx = intermediateTex.idx;
 
-    std::srand(glfwGetTime());
-    float radians = 10.0f;
-    float offset = 2.5f;
-
-    for (unsigned int i = 0; i < amount; i++) {
-        glm::mat4 model = glm::mat4(1.0f);
-
-        float angle = (float)i / amount * 360.0f;
-        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float x = std::sin(angle) * radians + displacement;
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float y = displacement * 0.4f;
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float z = std::cos(angle) * radians + displacement;
-
-        model = glm::translate(model, glm::vec3(x, y, z));
-
-        float rotAngle = (rand() % 360);
-        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
-
-        float scale = (rand() % 20) / 100.0f + 0.05;
-        model = glm::scale(model, glm::vec3(scale));
-
-        rockModels[i] = model;
-    }
-
-    VertexBufferLayout rockLayout;
-    rockLayout.push<float>(4, 3, 1);
-    rockLayout.push<float>(4, 4, 1);
-    rockLayout.push<float>(4, 5, 1);
-    rockLayout.push<float>(4, 6, 1);
-
-    auto rockModelVertexBuffer = VertexBuffer::CreateVertexBuffer(rockModels, sizeof(glm::mat4) * amount);
 
     // 创建网格
     auto skyboxCube = GeometryGenerator::generateSkyBox();
@@ -161,28 +132,26 @@ void App::run()
     auto screenQuad = GeometryGenerator::generateQuad();
     screenQuad->SetTexture(screenTex);
 
-    auto rock = Model::CreateModel("./models/rock/rock.obj");
-    rock->SetScale(0.1, 0.1, 0.1);
-    rock->SetVertexLayout(rockLayout, rockModelVertexBuffer.get());
-    auto planet = Model::CreateModel("./models/planet/planet.obj");
-    planet->SetPos(0,0,0);
+    auto box = GeometryGenerator::generateCube();
 
     // 创建着色器
     auto skyboxShader = ShaderGenerator::CreateShader("skyboxShader", "./shaders/skybox_vert.shader", "./shaders/skybox_frag.shader");
-    auto planetShader = ShaderGenerator::CreateShader("planetShader" ,"./shaders/texture_vert.shader", "./shaders/texture_frag.shader");
-    auto rockShader = ShaderGenerator::CreateShader("rockShader", "./shaders/rock_vert.shader", "./shaders/texture_frag.shader");
     auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader");
+    auto boxShader = ShaderGenerator::CreateShader("boxShader", "./shaders/color_vert .shader", "./shaders/color_frag.shader");
 
     // 创建framebuffer
     unsigned int fbo;
+    unsigned int renderid = TextureManager::GetTexture(framebufferTex.idx)->GetRenderID();
     GLCall(glGenFramebuffers(1, &fbo));
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
-    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, TextureManager::GetTextureRenderID(screenTex.idx), 0));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE
+                                  , renderid
+                                  , 0));
 
     unsigned int rbo;
     GLCall(glGenRenderbuffers(1, &rbo));
     GLCall(glBindRenderbuffer(GL_RENDERBUFFER, rbo));
-    GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _width, _height));
+    GLCall(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, _width, _height));
     GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo));
 
     unsigned int flag = GLCall(glCheckFramebufferStatus(GL_FRAMEBUFFER));
@@ -191,8 +160,25 @@ void App::run()
         std::cout << "[ERROR] failed to create framebuffer, error code is " <<  flag << std::endl;
         throw std::runtime_error("failed to create frambuffer");
     }
-
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+    // 创建第二个fbo, 用于进行贴图还原
+    unsigned int intermediateFBO;
+    renderid = TextureManager::GetTexture(intermediateTex.idx)->GetRenderID();
+    GLCall(glGenFramebuffers(1, &intermediateFBO));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D
+									, renderid
+                                  , 0));
+
+    flag = GLCall(glCheckFramebufferStatus(GL_FRAMEBUFFER));
+
+    if (flag != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "[ERROR] failed to create intermediate framebuffer, error code is " <<  flag << std::endl;
+        throw std::runtime_error("failed to create frambuffer");
+    }
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
     GLCall(glEnable(GL_CULL_FACE));
     GLCall(glCullFace(GL_BACK));
     GLCall(glFrontFace(GL_CCW));
@@ -216,7 +202,7 @@ void App::run()
         view = camera.GetViewMat4();
 
         model = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+        //model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
 
         // 绘制天空盒
         GLCall(glDepthFunc(GL_LEQUAL));
@@ -227,15 +213,15 @@ void App::run()
         skyboxCube->Draw(skyboxShader);
         GLCall(glDepthFunc(GL_LESS));
 
-        planetShader->Bind();
-        planetShader->SetMat4f("proj", proj);
-        planetShader->SetMat4f("view", view);
-        planet->Draw(planetShader);
+        boxShader->Bind();
+        boxShader->SetMat4f("view", view);
+        boxShader->SetMat4f("proj", proj);
+        boxShader->SetMat4f("model", model);
+        box->Draw(boxShader);
 
-        rockShader->Bind();
-        rockShader->SetMat4f("proj", proj);
-        rockShader->SetMat4f("view", view);
-        rock->DrawInstancing(rockShader, amount);
+        GLCall(glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo));
+        GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO));
+        GLCall(glBlitFramebuffer(0, 0, _width, _height, 0, 0, _width, _height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 
         GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         GLCall(glDisable(GL_DEPTH_TEST));
@@ -252,7 +238,6 @@ void App::run()
         glfwSwapBuffers(_window);
     }
 
-    delete[] rockModels;
 }
 
 void App::initGlfw()

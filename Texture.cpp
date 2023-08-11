@@ -190,14 +190,18 @@ int TextureManager::CreateTexture(const std::string& texName, unsigned int type,
     {
         case GL_TEXTURE_2D:
             GLCall(glTexImage2D(type, 0 ,format, w, h, 0, format, GL_UNSIGNED_BYTE, data));
+            GLCall(glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GLCall(glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        break;
+
+        case GL_TEXTURE_2D_MULTISAMPLE:
+            GLCall( glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, format, w, h, GL_TRUE));
         break;
         default:
             assert(false);
         break;
     }
 
-    GLCall(glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    GLCall(glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
     auto ptr = std::unique_ptr<Texture>(new Texture(texID, texName, type, format));
 
