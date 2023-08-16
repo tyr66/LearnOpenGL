@@ -13,6 +13,7 @@ private:
 public:
     void SetWrapping(unsigned int wrap_s, unsigned int wrap_t);
     void SetFiltering(unsigned int minFilter, unsigned int magFilter);
+    void SetBorderColor(const float*data);
     void Bind();
     void BindAndActive(unsigned int unit);
     void Unbind();
@@ -38,7 +39,7 @@ public:
     static Texture* GetTexture(const std::string& fullName);
     static int LoadTexture(const std::string& fullName, unsigned int type);
     static int LoadCubeMap(const std::string&name, const std::vector<std::string>& facesPath);
-    static int CreateTexture(const std::string& texName, unsigned int type, unsigned int format, unsigned int w, unsigned int h, void* data = nullptr);
+    static int CreateTexture(const std::string& texName, unsigned int target, unsigned int format, unsigned int w, unsigned int h, unsigned int type = 0, void* data = nullptr);
     static int GetTextureIndex(const std::string& fullName);
     static int GetTextureRenderID(int id);
     static bool IsLoaded(const std::string& fullName);

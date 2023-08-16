@@ -19,6 +19,7 @@ enum TextureUsage
     TEXTURE_USAGE_SPECULAR = 1,
     TEXTURE_USAGE_SKYBOX = 2,
     TEXTURE_USAGE_FRAMEBUFFER = 3,
+    TEXTURE_USAGE_SHADOWMAP = 4,
 };
 
 struct Vertex{

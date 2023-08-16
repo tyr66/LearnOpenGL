@@ -100,7 +100,6 @@ void Mesh::DrawInstancing(ShaderPtr& shader, unsigned int count)
     GLCall(glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0, count));
     _ebo->Unbind();
     _vao->Unbind();
-    shader->ResetTexture();
 }
 
 
@@ -113,7 +112,6 @@ void Mesh::Draw(ShaderPtr& shader)
 
     for (unsigned int i = 0; i < textures.size(); i++)
     {
-        GLCall(glActiveTexture(GL_TEXTURE0 + i));
 		std:: string name = "material.";
         auto& texIdx = textures[i];
         auto tex = TextureManager::GetTexture(texIdx.idx);
@@ -153,7 +151,6 @@ void Mesh::Draw(ShaderPtr& shader)
     GLCall(glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0));
     _ebo->Unbind();
     _vao->Unbind();
-    shader->ResetTexture();
 }
 
 

@@ -65,7 +65,6 @@ public:
     void SetFloat(const std::string& name, float value);
     void SetMat4f(const std::string& name, glm::mat4& mat);
     void SetVec3f(const std::string& name, const glm::vec3& v);
-    void SetGobalTexture(const std::string& name, Texture* texture);
     void SetTexture(const std::string& name, Texture* texture);
 
     void SetDirectionalLight(const DirectionalLight& light);
@@ -74,8 +73,6 @@ public:
     void SetDirectionalLightNum(int num);
     void SetPointLightNum(int num);
     void SetSpotLightNum(int num);
-
-    void ResetTexture();
 
     std::string GetName(){return _name;}
     bool IsPresistence(){return _isPresistence;}
@@ -109,11 +106,11 @@ private:
     unsigned int _renderID{0};
     std::string _name;
     std::unordered_map<std::string, int> _uniformLocation;
+    std::unordered_map<std::string, int> _textureIdx;
     int _directionalLightIdx{0};
+    int _textureid{0};
     int _pointLightIdx{0};
     int _spotLightIdx{0};
-    int _textureIdx{0};
-    int _gobalTexIdx{0};
     bool _isPresistence{false};
 };
 

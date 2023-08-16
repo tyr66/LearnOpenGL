@@ -286,21 +286,18 @@ void Shader::SetTexture(const std::string& name, Texture* tex)
     if (tex == nullptr)
         return;
 
-    SetInt(name, _gobalTexIdx + _textureIdx++);
+    int idx = 0;
+    if (_textureIdx.count(name) > 0) {
+        idx = _textureIdx[name];
+    } else {
+        idx = _textureid++;
+        _textureIdx[name] = idx;
+    }
+
+    GLCall(glActiveTexture(GL_TEXTURE0 + idx));
+    SetInt(name, idx);
     tex->Bind();
 
-}
-void Shader::SetGobalTexture(const std::string& name, Texture* tex)
-{
-    if (tex == nullptr)
-        return;
-
-    SetInt(name, _gobalTexIdx++);
-    tex->Bind();
-}
-void Shader::ResetTexture()
-{
-    _textureIdx = 0;
 }
 void Shader::SetDirectionalLight(const DirectionalLight& light)
 {

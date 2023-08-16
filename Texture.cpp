@@ -175,7 +175,7 @@ int TextureManager::GetTextureRenderID(int id)
     return instance->_textures[id]->_renderID;
 }
 
-int TextureManager::CreateTexture(const std::string& texName, unsigned int type, unsigned int format, unsigned int w, unsigned int h, void* data)
+int TextureManager::CreateTexture(const std::string& texName, unsigned int target, unsigned int format, unsigned int w, unsigned int h, unsigned int type, void* data)
 {
     if (instance->_generatedMap.count(texName) > 0) {
         std::cout << "[INFO] texture : " << texName << "already create" << std::endl; 
@@ -184,18 +184,18 @@ int TextureManager::CreateTexture(const std::string& texName, unsigned int type,
 
     unsigned int texID;
     GLCall(glGenTextures(1, &texID));
-    GLCall(glBindTexture(type, texID));
+    GLCall(glBindTexture(target, texID));
         
-    switch(type)
+    switch(target)
     {
         case GL_TEXTURE_2D:
-            GLCall(glTexImage2D(type, 0 ,format, w, h, 0, format, GL_UNSIGNED_BYTE, data));
-            GLCall(glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            GLCall(glTexParameteri(type, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            GLCall(glTexImage2D(target, 0 ,format, w, h, 0, format, type, data));
+            GLCall(glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GLCall(glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
         break;
 
         case GL_TEXTURE_2D_MULTISAMPLE:
-            GLCall( glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, format, w, h, GL_TRUE));
+            GLCall(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, format, w, h, GL_TRUE));
         break;
         default:
             assert(false);
@@ -203,7 +203,7 @@ int TextureManager::CreateTexture(const std::string& texName, unsigned int type,
     }
 
 
-    auto ptr = std::unique_ptr<Texture>(new Texture(texID, texName, type, format));
+    auto ptr = std::unique_ptr<Texture>(new Texture(texID, texName, target, format));
 
     instance->_generatedMap[texName] = ++instance->id;
     instance->_textures[instance->id] = std::move(ptr);
@@ -237,6 +237,12 @@ void Texture::SetWrapping(unsigned int wrap_s, unsigned int wrap_t)
     Bind();
     GLCall(glTexParameteri(_type, GL_TEXTURE_WRAP_S, wrap_s));
     GLCall(glTexParameteri(_type, GL_TEXTURE_WRAP_T, wrap_t));
+}
+
+void Texture::SetBorderColor(const float* data)
+{
+    Bind();
+    GLCall(glTexParameterfv(_type, GL_TEXTURE_BORDER_COLOR, data));
 }
 
 void Texture::BindAndActive(unsigned int unit)

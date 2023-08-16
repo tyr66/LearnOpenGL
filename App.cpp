@@ -87,59 +87,83 @@ void App::test()
     }
 }
 
+void App::renderScense(ShaderPtr& ahder)
+{
+
+}
+
 void App::run()
 {
     Camera camera;
     glm::mat4 proj;
-    glm::mat4 model;
     glm::mat4 view;
-    glm::mat4 skyboxView;
-
-    // 加载天空盒
-    std::vector<std::string> cubemapFaces = {
-        "./textures/skybox/right.jpg",
-        "./textures/skybox/left.jpg",
-        "./textures/skybox/top.jpg",
-        "./textures/skybox/bottom.jpg",
-        "./textures/skybox/front.jpg",
-        "./textures/skybox/back.jpg"
-    };
-
-    TextureIndex skybox;
-    skybox.usage = TextureUsage::TEXTURE_USAGE_SKYBOX;
-    skybox.idx = TextureManager::LoadCubeMap("skybox", cubemapFaces);
 
     TextureIndex framebufferTex;
     framebufferTex.usage = TextureUsage::TEXTURE_USAGE_FRAMEBUFFER;
-    framebufferTex.idx = TextureManager::CreateTexture("multiSampler",GL_TEXTURE_2D_MULTISAMPLE, GL_RGB, _width, _height);
+    framebufferTex.idx = TextureManager::CreateTexture("multiSampler",GL_TEXTURE_2D_MULTISAMPLE, GL_RGB, _width, _height, GL_UNSIGNED_BYTE);
 
     TextureIndex intermediateTex;
     intermediateTex.usage = TextureUsage::TEXTURE_USAGE_FRAMEBUFFER;
-    intermediateTex.idx = TextureManager::CreateTexture("intermediate", GL_TEXTURE_2D, GL_RGB, _width, _height);
+    intermediateTex.idx = TextureManager::CreateTexture("intermediate", GL_TEXTURE_2D, GL_RGB, _width, _height, GL_UNSIGNED_BYTE);
 
     TextureIndex boxTex;
     boxTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     boxTex.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
 
+    TextureIndex floorTex;
+    floorTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    floorTex.idx = TextureManager::LoadTexture("./textures/metal.png", GL_TEXTURE_2D);
+
     TextureIndex screenTex;
     screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     screenTex.idx = intermediateTex.idx;
 
+    TextureIndex shadowTex;
+    shadowTex.usage = TextureUsage::TEXTURE_USAGE_SHADOWMAP;
+    shadowTex.idx = TextureManager::CreateTexture("shadowMap", GL_TEXTURE_2D, GL_DEPTH_COMPONENT, _shadowWidth, _shadowHeight, GL_FLOAT);
+    auto shadowTexPtr = TextureManager::GetTexture(shadowTex.idx);
+    shadowTexPtr->SetWrapping(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+    shadowTexPtr->SetFiltering(GL_NEAREST, GL_NEAREST);
+    float borderColor[]  = {1.0, 1.0, 1.0, 1.0};
+    shadowTexPtr->SetBorderColor(borderColor);
 
     // 创建网格
-    auto skyboxCube = GeometryGenerator::generateSkyBox();
-
     auto screenQuad = GeometryGenerator::generateQuad();
     screenQuad->SetTexture(screenTex);
 
-    auto box = GeometryGenerator::generateCube();
+    auto boxMesh = GeometryGenerator::generateCube();
+    boxMesh->SetTexture(boxTex);
+    auto box = Model::CreateModel({boxMesh});
+
+    auto floorMesh = GeometryGenerator::generatePlane();
+    floorMesh->SetTexture(floorTex);
+    auto floor = Model::CreateModel({floorMesh});
+    floor->SetScale(10.0f, 10.0, 10.0f);
+    floor->SetPos(0.0f, -0.5f, 0.0f);
 
     // 创建着色器
-    auto skyboxShader = ShaderGenerator::CreateShader("skyboxShader", "./shaders/skybox_vert.shader", "./shaders/skybox_frag.shader");
     auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader");
-    auto boxShader = ShaderGenerator::CreateShader("boxShader", "./shaders/color_vert .shader", "./shaders/color_frag.shader");
+    auto sceneShader = ShaderGenerator::CreateShader("boxShader", "./shaders/shadow_map_vert.shader", "./shaders/shadow_map_frag.shader");
+    auto shadowMapShader = ShaderGenerator::CreateShader("shadowMapShader", "./shaders/shadow_tex_vert.shader", "./shaders/shadow_tex_frag.shader");
 
     // 创建framebuffer
+    unsigned int flag = 0;
+
+    unsigned int shadowFbo;
+    GLCall(glGenFramebuffers(1, &shadowFbo));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexPtr->GetRenderID(), 0));
+    GLCall(glDrawBuffer(GL_NONE));
+    GLCall(glReadBuffer(GL_NONE));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+    flag = GLCall(glCheckFramebufferStatus(GL_FRAMEBUFFER));
+
+    if (flag != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "[ERROR] failed to create shadowMap framebuffer, error code is " <<  flag << std::endl;
+        throw std::runtime_error("failed to create shadowmap frambuffer");
+    }
+
     unsigned int fbo;
     unsigned int renderid = TextureManager::GetTexture(framebufferTex.idx)->GetRenderID();
     GLCall(glGenFramebuffers(1, &fbo));
@@ -154,7 +178,7 @@ void App::run()
     GLCall(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, _width, _height));
     GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo));
 
-    unsigned int flag = GLCall(glCheckFramebufferStatus(GL_FRAMEBUFFER));
+    flag = GLCall(glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
     if (flag != GL_FRAMEBUFFER_COMPLETE) {
         std::cout << "[ERROR] failed to create framebuffer, error code is " <<  flag << std::endl;
@@ -183,12 +207,43 @@ void App::run()
     GLCall(glCullFace(GL_BACK));
     GLCall(glFrontFace(GL_CCW));
 
-    skyboxShader->Bind();
-    skyboxShader->SetGobalTexture("skybox", TextureManager::GetTexture(skybox.idx));
+    glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+    glm::mat4 lightProj, lightView;
+    lightProj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+    lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 lightSpaceMat = lightProj * lightView;
+
+    DirectionalLight light;
+    light.lightDir = glm::normalize(-lightPos);
+    light.ambient = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    shadowMapShader->Bind();
+    shadowMapShader->SetMat4f("lightSpaceMat", lightSpaceMat);
+
+    sceneShader->Bind();
+    sceneShader->SetDirectionalLight(light);
+    sceneShader->SetDirectionalLightNum(1);
 
     while(!glfwWindowShouldClose(_window))
     {
+        GLCall(glEnable(GL_DEPTH_TEST));
+        GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f));
+        GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+        GLCall(glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo));
+        GLCall(glViewport(0, 0, _shadowWidth, _shadowHeight));
 
+        floor->Draw(shadowMapShader);
+        box->SetPos(0.0f, 1.5f, 0.0f);
+        box->Draw(shadowMapShader);
+        box->SetPos(2.0f, 0.0f, 1.0f);
+        box->Draw(shadowMapShader);
+        box->SetPos(-1.0f, 0.0f, 2.0f);
+        box->Draw(shadowMapShader);
+
+
+        GLCall(glViewport(0, 0, _width, _height));
         GLCall(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
         GLCall(glEnable(GL_DEPTH_TEST));
         GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f));
@@ -201,23 +256,20 @@ void App::run()
         proj = glm::perspective(glm::radians(camera.GetFov()), _width / (float)_height, 0.1f, 100.0f);
         view = camera.GetViewMat4();
 
-        model = glm::mat4(1.0f);
-        //model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+        sceneShader->Bind();
+        sceneShader->SetTexture("shadow_texture", shadowTexPtr);
+        sceneShader->SetMat4f("view", view);
+        sceneShader->SetMat4f("proj", proj);
+        sceneShader->SetMat4f("lightSpaceMat", lightSpaceMat);
+        sceneShader->SetVec3f("viewPos", camera.GetPos());
 
-        // 绘制天空盒
-        GLCall(glDepthFunc(GL_LEQUAL));
-        skyboxView = glm::mat4(glm::mat3(view)); // 让skybox永远位于摄像机中心
-        skyboxShader->Bind();
-        skyboxShader->SetMat4f("view", skyboxView);
-        skyboxShader->SetMat4f("proj", proj);
-        skyboxCube->Draw(skyboxShader);
-        GLCall(glDepthFunc(GL_LESS));
-
-        boxShader->Bind();
-        boxShader->SetMat4f("view", view);
-        boxShader->SetMat4f("proj", proj);
-        boxShader->SetMat4f("model", model);
-        box->Draw(boxShader);
+        floor->Draw(sceneShader);
+        box->SetPos(0.0f, 1.5f, 0.0f);
+        box->Draw(sceneShader);
+        box->SetPos(2.0f, 0.0f, 1.0f);
+        box->Draw(sceneShader);
+        box->SetPos(-1.0f, 0.0f, 2.0f);
+        box->Draw(sceneShader);
 
         GLCall(glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo));
         GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO));
