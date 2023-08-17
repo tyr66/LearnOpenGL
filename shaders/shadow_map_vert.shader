@@ -7,20 +7,17 @@ layout (location = 2) in vec2 TEXCOORD;
 out VS_OUT {
     vec3 pos;
     vec3 normal;
-    vec4 lightSpacePos;
     vec2 texCoord;
 } vs_out;
 
 uniform mat4 proj;
 uniform mat4 view;
 uniform mat4 model;
-uniform mat4 lightSpaceMat;
 
 void main()
 {
     gl_Position = proj * view * model * vec4(POS, 1.0);
-    vs_out.pos = vec3(view * model * vec4(POS, 1.0));
+    vs_out.pos = vec3(model * vec4(POS, 1.0));
     vs_out.normal = normalize(vec3(transpose(inverse(model)) * vec4(NORMAL, 0.0)));
-    vs_out.lightSpacePos = lightSpaceMat * model * vec4(POS, 1.0);
     vs_out.texCoord = TEXCOORD;
 }

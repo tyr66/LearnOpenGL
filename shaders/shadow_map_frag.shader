@@ -6,16 +6,19 @@ in VS_OUT
 {
     vec3 pos;
     vec3 normal;
-    vec4 lightSpacePos;
     vec2 texCoord;
 } fs_in;
 
-struct DirectionalLight {
+struct PointLight {
+    vec3 lightPos;
+
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
 
-    vec3 lightDir;
+    float constantAttenuation;
+    float linearAttenuation;
+    float quadraticAttenuation;
 };
 
 struct Material
@@ -23,64 +26,69 @@ struct Material
     sampler2D texture_diffuse0;
 };
 
-#define MAX_DIR_LIGHT 15
-uniform int dirlightCnt;
-uniform DirectionalLight dirLights[MAX_DIR_LIGHT];
+#define MAX_POINT_LIGHT 15
+uniform int pointLightCnt;
+uniform PointLight pointLights[MAX_POINT_LIGHT];
 uniform Material material;
-uniform sampler2D shadow_texture;
 uniform vec3 viewPos;
+uniform samplerCube shadow_texture;
+uniform float far_plane;
 
-float caulateShadow(vec3 nor)
+vec3 gridSamplingDisk[20] = vec3[]
+(
+   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
+   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
+   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
+   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
+);
+
+
+float caulateShadow(vec3 dir, float toViewDist , float dist)
 {
-    vec3 tex = fs_in.lightSpacePos.xyz / fs_in.lightSpacePos.w;
-    tex = tex * 0.5 + 0.5;
-
-    if (tex.z > 1.0)
-        return 0.0;
-
-    float shadowDepth = texture(shadow_texture, tex.xy).r;
-    // 阴影偏移
-    float bias = max(0.05 * dot(dirLights[0].lightDir, nor), 0.005);
-    float currentDepth = tex.z;
+    float currentDepth = dist;
     float shadow = 0.0;
-    //return shadowDepth + bias < currentDepth ? 1.0 : 0.0;
-    // PCM 软阴影
-    vec2 texSize = 1.0 / textureSize(shadow_texture, 0);
 
-    for (int x = -1; x <= 1; x++)
-    {
-        for (int y = -1; y <= 1; y++)
-        {
-            float pcfDepth = texture(shadow_texture, tex.xy + vec2(x, y) * texSize).r;
-            shadow += pcfDepth + bias < currentDepth ? 1.0 : 0.0;
-        }
+    //float depth = texture(shadow_texture, dir ).r;
+    //depth *= far_plane;
+    //return currentDepth - 0.15 > depth ? 1.0 : 0.0;
+
+    //return texture(shadow_texture, dir).r;
+    int sample = 20;
+    float diskRadius = (1.0 + (toViewDist / far_plane)) / 25.0;
+
+    for (int i = 0; i < sample; i++) {
+        float depth = texture(shadow_texture, dir + gridSamplingDisk[i] * diskRadius).r;
+        depth *= far_plane;
+        shadow += currentDepth - 0.15 > depth ? 1.0 : 0.0;
     }
 
-    shadow /= 9.0;
-    return shadow;
+    return shadow / float(sample);
 }
 
 
 void main()
 {
     vec3 color = texture(material.texture_diffuse0, fs_in.texCoord).rgb;
-    vec3 finalColor = color;
-    vec3 lightDir = dirLights[0].lightDir;
+    vec3 finalColor = vec3(0.0, 0.0, 0.0);
     vec3 nor = normalize(fs_in.normal);
+    vec3 lightDir = normalize(fs_in.pos - pointLights[0].lightPos);
 
-    vec3 ambient = 0.3 * color * dirLights[0].ambient;
+    vec3 ambient = 0.3 * pointLights[0].ambient;
 
-    vec3 diffuse = max(dot(-lightDir, nor), 0.0) * dirLights[0].diffuse * color;
+    vec3 diffuse = max(dot(-lightDir, nor), 0.0) * pointLights[0].diffuse;
 
-    vec3 half_vec = normalize(viewPos - fs_in.pos) + dirLights[0].lightDir ;
-    half_vec = normalize(half_vec);
+    vec3 half_vec = normalize(-lightDir + normalize(viewPos - fs_in.pos));
+    float specularFactory = pow(max(dot(nor, half_vec), 0.0), 32.0);
+    vec3 specular = specularFactory * pointLights[0].specular;
 
-    float specularFactor = pow(max(dot(half_vec, nor), 0.0), 64.0);
-    vec3 specular = specularFactor * dirLights[0].specular *  color;
+    float dist = length(fs_in.pos - pointLights[0].lightPos);
+    float attenuation = 1.0 / (pointLights[0].constantAttenuation + dist * pointLights[0].linearAttenuation + dist * dist * pointLights[0].quadraticAttenuation);
 
-    float shadowFactory = caulateShadow(nor);
-
-    finalColor = ambient + (1.0 - shadowFactory) * (diffuse + specular);
-
+    //float attenuation = 1.0 / (1.0 + 0.7 * dist + dist * dist * 1.8);
+    float toViewDist = length(fs_in.pos - viewPos);
+    float shadow = 1.0 - caulateShadow(fs_in.pos - pointLights[0].lightPos, toViewDist, dist);
+    finalColor = (ambient + shadow * (diffuse + specular)) * color * attenuation;
+    
     FragColor = vec4(finalColor, 1.0);
 }

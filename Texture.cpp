@@ -197,6 +197,16 @@ int TextureManager::CreateTexture(const std::string& texName, unsigned int targe
         case GL_TEXTURE_2D_MULTISAMPLE:
             GLCall(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, format, w, h, GL_TRUE));
         break;
+        case GL_TEXTURE_CUBE_MAP:
+            for (int i = 0; i < 6; i++) {
+                GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, w, h, 0, format, type, 0));
+            }
+            GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+            GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+            GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE));
+        break;
         default:
             assert(false);
         break;

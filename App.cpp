@@ -98,6 +98,8 @@ void App::run()
     glm::mat4 proj;
     glm::mat4 view;
 
+
+    // 创建贴图
     TextureIndex framebufferTex;
     framebufferTex.usage = TextureUsage::TEXTURE_USAGE_FRAMEBUFFER;
     framebufferTex.idx = TextureManager::CreateTexture("multiSampler",GL_TEXTURE_2D_MULTISAMPLE, GL_RGB, _width, _height, GL_UNSIGNED_BYTE);
@@ -110,22 +112,18 @@ void App::run()
     boxTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     boxTex.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
 
-    TextureIndex floorTex;
-    floorTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
-    floorTex.idx = TextureManager::LoadTexture("./textures/metal.png", GL_TEXTURE_2D);
+    TextureIndex wallTex;
+    wallTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    wallTex.idx = TextureManager::LoadTexture("./textures/metal.png", GL_TEXTURE_2D);
 
     TextureIndex screenTex;
     screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     screenTex.idx = intermediateTex.idx;
 
     TextureIndex shadowTex;
-    shadowTex.usage = TextureUsage::TEXTURE_USAGE_SHADOWMAP;
-    shadowTex.idx = TextureManager::CreateTexture("shadowMap", GL_TEXTURE_2D, GL_DEPTH_COMPONENT, _shadowWidth, _shadowHeight, GL_FLOAT);
+    shadowTex.usage = TextureUsage::TEXTURE_USAGE_SHADOWCUBEMAP;
+    shadowTex.idx = TextureManager::CreateTexture("shadowCubeMap", GL_TEXTURE_CUBE_MAP, GL_DEPTH_COMPONENT, _shadowWidth, _shadowHeight, GL_FLOAT);
     auto shadowTexPtr = TextureManager::GetTexture(shadowTex.idx);
-    shadowTexPtr->SetWrapping(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
-    shadowTexPtr->SetFiltering(GL_NEAREST, GL_NEAREST);
-    float borderColor[]  = {1.0, 1.0, 1.0, 1.0};
-    shadowTexPtr->SetBorderColor(borderColor);
 
     // 创建网格
     auto screenQuad = GeometryGenerator::generateQuad();
@@ -135,16 +133,16 @@ void App::run()
     boxMesh->SetTexture(boxTex);
     auto box = Model::CreateModel({boxMesh});
 
-    auto floorMesh = GeometryGenerator::generatePlane();
-    floorMesh->SetTexture(floorTex);
-    auto floor = Model::CreateModel({floorMesh});
-    floor->SetScale(10.0f, 10.0, 10.0f);
-    floor->SetPos(0.0f, -0.5f, 0.0f);
+    auto wallMesh = GeometryGenerator::generateInverseCube();
+    wallMesh->SetTexture(wallTex);
+    auto wall = Model::CreateModel({wallMesh});
+    wall->SetScale(10.0f, 10.0, 10.0f);
+    wall->SetPos(0.0f, 0.0f, 0.0f);
 
     // 创建着色器
     auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader");
     auto sceneShader = ShaderGenerator::CreateShader("boxShader", "./shaders/shadow_map_vert.shader", "./shaders/shadow_map_frag.shader");
-    auto shadowMapShader = ShaderGenerator::CreateShader("shadowMapShader", "./shaders/shadow_tex_vert.shader", "./shaders/shadow_tex_frag.shader");
+    auto shadowMapShader = ShaderGenerator::CreateShader("shadowMapShader", "./shaders/shadow_tex_vert.shader", "./shaders/shadow_tex_frag.shader", "./shaders/shadow_tex_geo.shader");
 
     // 创建framebuffer
     unsigned int flag = 0;
@@ -152,7 +150,7 @@ void App::run()
     unsigned int shadowFbo;
     GLCall(glGenFramebuffers(1, &shadowFbo));
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo));
-    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexPtr->GetRenderID(), 0));
+    GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTexPtr->GetRenderID(), 0));
     GLCall(glDrawBuffer(GL_NONE));
     GLCall(glReadBuffer(GL_NONE));
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -207,24 +205,41 @@ void App::run()
     GLCall(glCullFace(GL_BACK));
     GLCall(glFrontFace(GL_CCW));
 
-    glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
-    glm::mat4 lightProj, lightView;
-    lightProj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-    lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4 lightSpaceMat = lightProj * lightView;
-
-    DirectionalLight light;
-    light.lightDir = glm::normalize(-lightPos);
+    PointLight light;
+    light.lightPos = glm::vec3(0.0f, 0.0f, 0.0f);
+    light.constant = 1.0f;
+    light.linear = 0.09f;
+    light.quadratic = 0.032f;
     light.ambient = glm::vec3(1.0f, 1.0f, 1.0f);
     light.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
     light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
+    // point shadows 每一个面的阴影变换矩阵
+    float near_plane  = 1.0f;
+    float far_plane = 25.0f;
+    glm::mat4 lightProjMat = glm::perspective(glm::radians(90.0f), (float)_shadowWidth / _shadowHeight, near_plane, far_plane);
+    glm::mat4 shadowTransformMats[] = {
+        lightProjMat * glm::lookAt(light.lightPos, light.lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+        lightProjMat * glm::lookAt(light.lightPos, light.lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+        lightProjMat * glm::lookAt(light.lightPos, light.lightPos + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        lightProjMat * glm::lookAt(light.lightPos, light.lightPos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+        lightProjMat * glm::lookAt(light.lightPos, light.lightPos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+        lightProjMat * glm::lookAt(light.lightPos, light.lightPos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+    };
+
     shadowMapShader->Bind();
-    shadowMapShader->SetMat4f("lightSpaceMat", lightSpaceMat);
+    shadowMapShader->SetFloat("far_plane", far_plane);
+    shadowMapShader->SetVec3f("lightPos", light.lightPos);
+    for (int i = 0; i < sizeof(shadowTransformMats) / sizeof(glm::mat4); i++) {
+        std::string name = "shadowTransformMats[" + std::to_string(i) + "]";
+        shadowMapShader->SetMat4f(name, shadowTransformMats[i]);
+    }
 
     sceneShader->Bind();
-    sceneShader->SetDirectionalLight(light);
-    sceneShader->SetDirectionalLightNum(1);
+    sceneShader->SetPointLight(light);
+    sceneShader->SetPointLightNum(1);
+    sceneShader->SetFloat("far_plane", far_plane);
+
 
     while(!glfwWindowShouldClose(_window))
     {
@@ -234,12 +249,29 @@ void App::run()
         GLCall(glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo));
         GLCall(glViewport(0, 0, _shadowWidth, _shadowHeight));
 
-        floor->Draw(shadowMapShader);
-        box->SetPos(0.0f, 1.5f, 0.0f);
+        // 绘制墙壁
+        GLCall(glDisable(GL_CULL_FACE));
+        wall->Draw(shadowMapShader);
+        GLCall(glEnable(GL_CULL_FACE));
+
+        box->SetScale(0.5f, 0.5f, 0.5f);
+        box->SetPos(4.0f, -3.5f, 0.0f);
         box->Draw(shadowMapShader);
-        box->SetPos(2.0f, 0.0f, 1.0f);
+
+        box->SetPos(2.0f, 3.0f, 1.0f);
+        box->SetScale(0.75f, 0.75f, 0.75f);
         box->Draw(shadowMapShader);
-        box->SetPos(-1.0f, 0.0f, 2.0f);
+
+        box->SetPos(-3.0f, -1.0f, 0.0f);
+        box->SetScale(0.5f, 0.5f, 0.5f);
+        box->Draw(shadowMapShader);
+
+        box->SetPos(-1.5f, 1.0f, 1.5f);
+        box->SetScale(0.5f, 0.5f, 0.5f);
+        box->Draw(shadowMapShader);
+
+        box->SetPos(-1.5f, 2.0f, -3.0f);
+        box->SetScale(0.75f, 0.75f, 0.75f);
         box->Draw(shadowMapShader);
 
 
@@ -260,15 +292,30 @@ void App::run()
         sceneShader->SetTexture("shadow_texture", shadowTexPtr);
         sceneShader->SetMat4f("view", view);
         sceneShader->SetMat4f("proj", proj);
-        sceneShader->SetMat4f("lightSpaceMat", lightSpaceMat);
         sceneShader->SetVec3f("viewPos", camera.GetPos());
 
-        floor->Draw(sceneShader);
-        box->SetPos(0.0f, 1.5f, 0.0f);
+        GLCall(glDisable(GL_CULL_FACE));
+        wall->Draw(sceneShader);
+        GLCall(glEnable(GL_CULL_FACE));
+
+        box->SetScale(0.5f, 0.5f, 0.5f);
+        box->SetPos(4.0f, -3.5f, 0.0f);
         box->Draw(sceneShader);
-        box->SetPos(2.0f, 0.0f, 1.0f);
+
+        box->SetPos(2.0f, 3.0f, 1.0f);
+        box->SetScale(0.75f, 0.75f, 0.75f);
         box->Draw(sceneShader);
-        box->SetPos(-1.0f, 0.0f, 2.0f);
+
+        box->SetPos(-3.0f, -1.0f, 0.0f);
+        box->SetScale(0.5f, 0.5f, 0.5f);
+        box->Draw(sceneShader);
+
+        box->SetPos(-1.5f, 1.0f, 1.5f);
+        box->SetScale(0.5f, 0.5f, 0.5f);
+        box->Draw(sceneShader);
+
+        box->SetPos(-1.5f, 2.0f, -3.0f);
+        box->SetScale(0.75f, 0.75f, 0.75f);
         box->Draw(sceneShader);
 
         GLCall(glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo));

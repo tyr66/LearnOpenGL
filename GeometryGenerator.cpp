@@ -5,6 +5,81 @@
 #include "Mesh.h"
 #include "Texture.h"
 
+MeshPtr GeometryGenerator::generateInverseCube()
+{
+    std::vector<Vertex> verts;
+
+    // 前面
+    verts.push_back({-0.5, 0.5, 0.5, 0.0f, 0.0f, -1.0f,     0.0f, 1.0f});
+    verts.push_back({0.5, 0.5, 0.5, 0.0f, 0.0f, -1.0f,      1.0f, 1.0f});
+    verts.push_back({0.5, -0.5, 0.5, 0.0f, 0.0f, -1.0f,     1.0f, 0.0f});
+    verts.push_back({-0.5, -0.5, 0.5, 0.0f, 0.0f, -1.0f,    0.0f, 0.0f});
+    //背面
+    verts.push_back({-0.5, 0.5, -0.5, 0.0f, 0.0f, 1.0f,0.0f, 1.0f});
+    verts.push_back({0.5, 0.5, -0.5,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f});
+    verts.push_back({0.5, -0.5, -0.5,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f});
+    verts.push_back({-0.5, -0.5, -0.5,  0.0f, 0.0f, 1.0f, 0.0f, 0.0f});
+
+    // 左面
+    verts.push_back({-0.5, 0.5, -0.5, 1.0f, 0.0f, 0.0f,   1.0f, 1.0f});
+    verts.push_back({-0.5, 0.5, 0.5, 1.0f, 0.0f, 0.0f,    1.0f, 0.0f,});
+    verts.push_back({-0.5, -0.5, 0.5, 1.0f, 0.0f, 0.0f,   0.0f, 0.0f});
+    verts.push_back({-0.5, -0.5, -0.5, 1.0f, 0.0f, 0.0f,  0.0f, 1.0f});
+
+    // 右面
+    verts.push_back({0.5, 0.5, -0.5, -1.0f, 0.0f, 0.0f,     1.0f, 1.0f});
+    verts.push_back({0.5, 0.5, 0.5, -1.0f, 0.0f, 0.0f,      1.0f, 0.0f});
+    verts.push_back({0.5, -0.5, 0.5, -1.0f, 0.0f, 0.0f,     0.0f, 0.0f});
+    verts.push_back({0.5, -0.5, -0.5, -1.0f, 0.0f, 0.0f,    0.0f, 1.0f});
+
+    // 上面
+    verts.push_back({-0.5, 0.5, -0.5, 0.0f, -1.0f, 0.0f,   0.0f, 1.0f});
+    verts.push_back({-0.5, 0.5, 0.5, 0.0f, -1.0f, 0.0f,    0.0f, 0.0f});
+    verts.push_back({0.5, 0.5, 0.5, 0.0f, -1.0f, 0.0f,     1.0f, 0.0f});
+    verts.push_back({0.5, 0.5, -0.5, 0.0f, -1.0f, 0.0f,    1.0f, 1.0f});
+
+    // 下面
+    verts.push_back({-0.5, -0.5, -0.5, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f});
+    verts.push_back({-0.5, -0.5, 0.5, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f});
+    verts.push_back({0.5, -0.5, 0.5, 0.0f, 1.0f, 0.0f,   1.0f, 0.0f,});
+    verts.push_back({0.5, -0.5, -0.5, 0.0f, 1.0f, 0.0f,  1.0f, 1.0f,});
+
+    std::vector<unsigned int> indices = {
+        //,前面
+        0,2,1,
+        2,0,3,
+
+        //,后面
+        5, 6, 7, 
+        5, 7, 4,
+
+        //,左面
+        8,11,10,
+        8, 10, 9,
+
+        //,右面
+        12,14,15,
+        14,12,13,
+
+        //,上面
+        16,18,19,
+        18,16,17,
+
+        //,下面
+        20,23,21,
+        21,23,22,
+    };
+
+    VertexBufferLayout layout;
+    layout.push<float>(3, 0);
+    layout.push<float>(3, 1);
+    layout.push<float>(2, 2);
+
+    std::vector<TextureIndex> texIdxs;
+
+    return MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(texIdxs), layout);
+}
+
 MeshPtr GeometryGenerator::generateCube()
 {
     std::vector<Vertex> verts;
