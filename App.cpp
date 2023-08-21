@@ -45,7 +45,7 @@ App::~App()
 void App::init()
 {
     initGlfw();
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     ShaderGenerator::Init();
     TextureManager::Init();
@@ -108,13 +108,21 @@ void App::run()
     intermediateTex.usage = TextureUsage::TEXTURE_USAGE_FRAMEBUFFER;
     intermediateTex.idx = TextureManager::CreateTexture("intermediate", GL_TEXTURE_2D, GL_RGB, _width, _height, GL_UNSIGNED_BYTE);
 
-    TextureIndex boxTex;
-    boxTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
-    boxTex.idx = TextureManager::LoadTexture("./textures/container.jpg", GL_TEXTURE_2D);
 
     TextureIndex wallTex;
     wallTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
     wallTex.idx = TextureManager::LoadTexture("./textures/metal.png", GL_TEXTURE_2D);
+
+    TextureIndex planeTex;
+    planeTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
+    planeTex.idx = TextureManager::LoadTexture("./textures/bricks/wood.png", GL_TEXTURE_2D);
+    TextureIndex planeNormalTex;
+    planeNormalTex.usage = TextureUsage::TEXTURE_USAGE_NORMAL;
+    planeNormalTex.idx = TextureManager::LoadTexture("./textures/bricks/toy_box_normal.png", GL_TEXTURE_2D);
+    TextureIndex planeParallaxTex;
+    planeParallaxTex.usage = TextureUsage::TEXTURE_USAGE_PARALLAX;
+    planeParallaxTex.idx = TextureManager::LoadTexture("./textures/bricks/toy_box_disp.png", GL_TEXTURE_2D);
+
 
     TextureIndex screenTex;
     screenTex.usage = TextureUsage::TEXTURE_USAGE_DIFFUSE;
@@ -129,20 +137,25 @@ void App::run()
     auto screenQuad = GeometryGenerator::generateQuad();
     screenQuad->SetTexture(screenTex);
 
-    auto boxMesh = GeometryGenerator::generateCube();
-    boxMesh->SetTexture(boxTex);
-    auto box = Model::CreateModel({boxMesh});
-
     auto wallMesh = GeometryGenerator::generateInverseCube();
     wallMesh->SetTexture(wallTex);
     auto wall = Model::CreateModel({wallMesh});
     wall->SetScale(10.0f, 10.0, 10.0f);
     wall->SetPos(0.0f, 0.0f, 0.0f);
 
+    auto planeMesh = GeometryGenerator::generatePlane(true);
+    planeMesh->SetTexture(planeTex);
+    planeMesh->SetTexture(planeNormalTex);
+    planeMesh->SetTexture(planeParallaxTex);
+    auto plane = Model::CreateModel({planeMesh});
+    plane->SetPos(0, 0, -4);
+    plane->SetRotation(90, 0, 0);
+
     // 创建着色器
     auto framebBufferShader = ShaderGenerator::CreateShader("frameBufferShader", "./shaders/framebuffer_screen_vert.shader", "./shaders/framebuffer_screen_frag.shader");
-    auto sceneShader = ShaderGenerator::CreateShader("boxShader", "./shaders/shadow_map_vert.shader", "./shaders/shadow_map_frag.shader");
+    auto planeShader = ShaderGenerator::CreateShader("planeShader", "./shaders/normal_parallax_vert.shader", "./shaders/normal_parallax_frag.shader");
     auto shadowMapShader = ShaderGenerator::CreateShader("shadowMapShader", "./shaders/shadow_tex_vert.shader", "./shaders/shadow_tex_frag.shader", "./shaders/shadow_tex_geo.shader");
+    auto wallShader = ShaderGenerator::CreateShader("wallShader", "./shaders/shadow_map_vert.shader", "./shaders/shadow_map_frag.shader");
 
     // 创建framebuffer
     unsigned int flag = 0;
@@ -235,10 +248,15 @@ void App::run()
         shadowMapShader->SetMat4f(name, shadowTransformMats[i]);
     }
 
-    sceneShader->Bind();
-    sceneShader->SetPointLight(light);
-    sceneShader->SetPointLightNum(1);
-    sceneShader->SetFloat("far_plane", far_plane);
+    planeShader->Bind();
+    planeShader->SetPointLight(light);
+    planeShader->SetPointLightNum(1);
+    planeShader->SetFloat("far_plane", far_plane);
+
+    wallShader->Bind();
+    wallShader->SetPointLightNum(1);
+    wallShader->SetPointLight(light);
+    wallShader->SetFloat("far_plane", far_plane);
 
 
     while(!glfwWindowShouldClose(_window))
@@ -254,25 +272,7 @@ void App::run()
         wall->Draw(shadowMapShader);
         GLCall(glEnable(GL_CULL_FACE));
 
-        box->SetScale(0.5f, 0.5f, 0.5f);
-        box->SetPos(4.0f, -3.5f, 0.0f);
-        box->Draw(shadowMapShader);
-
-        box->SetPos(2.0f, 3.0f, 1.0f);
-        box->SetScale(0.75f, 0.75f, 0.75f);
-        box->Draw(shadowMapShader);
-
-        box->SetPos(-3.0f, -1.0f, 0.0f);
-        box->SetScale(0.5f, 0.5f, 0.5f);
-        box->Draw(shadowMapShader);
-
-        box->SetPos(-1.5f, 1.0f, 1.5f);
-        box->SetScale(0.5f, 0.5f, 0.5f);
-        box->Draw(shadowMapShader);
-
-        box->SetPos(-1.5f, 2.0f, -3.0f);
-        box->SetScale(0.75f, 0.75f, 0.75f);
-        box->Draw(shadowMapShader);
+        plane->Draw(shadowMapShader);
 
 
         GLCall(glViewport(0, 0, _width, _height));
@@ -288,35 +288,24 @@ void App::run()
         proj = glm::perspective(glm::radians(camera.GetFov()), _width / (float)_height, 0.1f, 100.0f);
         view = camera.GetViewMat4();
 
-        sceneShader->Bind();
-        sceneShader->SetTexture("shadow_texture", shadowTexPtr);
-        sceneShader->SetMat4f("view", view);
-        sceneShader->SetMat4f("proj", proj);
-        sceneShader->SetVec3f("viewPos", camera.GetPos());
+        planeShader->Bind();
+        planeShader->SetTexture("shadow_texture", shadowTexPtr);
+        planeShader->SetMat4f("view", view);
+        planeShader->SetMat4f("proj", proj);
+        planeShader->SetVec3f("viewPos", camera.GetPos());
+
+        wallShader->Bind();
+        wallShader->SetTexture("shadow_texture", shadowTexPtr);
+        wallShader->SetMat4f("view", view);
+        wallShader->SetMat4f("proj", proj);
+        wallShader->SetVec3f("viewPos", camera.GetPos());
 
         GLCall(glDisable(GL_CULL_FACE));
-        wall->Draw(sceneShader);
+        wall->Draw(wallShader);
         GLCall(glEnable(GL_CULL_FACE));
 
-        box->SetScale(0.5f, 0.5f, 0.5f);
-        box->SetPos(4.0f, -3.5f, 0.0f);
-        box->Draw(sceneShader);
+        plane->Draw(planeShader);
 
-        box->SetPos(2.0f, 3.0f, 1.0f);
-        box->SetScale(0.75f, 0.75f, 0.75f);
-        box->Draw(sceneShader);
-
-        box->SetPos(-3.0f, -1.0f, 0.0f);
-        box->SetScale(0.5f, 0.5f, 0.5f);
-        box->Draw(sceneShader);
-
-        box->SetPos(-1.5f, 1.0f, 1.5f);
-        box->SetScale(0.5f, 0.5f, 0.5f);
-        box->Draw(sceneShader);
-
-        box->SetPos(-1.5f, 2.0f, -3.0f);
-        box->SetScale(0.75f, 0.75f, 0.75f);
-        box->Draw(sceneShader);
 
         GLCall(glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo));
         GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO));

@@ -169,6 +169,7 @@ void Model::setupVertexLayout()
     _layout.push<float>(3, 0); // pos
     _layout.push<float>(3, 1); // normal
     _layout.push<float>(2, 2); // texcoord
+    _layout.push<float>(3, 3); // tangent
 }
 
 void Model::setupModel(std::string path)

@@ -13,6 +13,8 @@ std::unique_ptr<ShaderGenerator> ShaderGenerator::instance;
 
 const char* Shader::DiffuseTexturePrefix = "texture_diffuse";
 const char* Shader::SpecularTexturePrefix = "texture_specular";
+const char* Shader::NormalTexturePrefix = "texture_normal";
+const char* Shader::ParallaxTexturePrefix = "texture_parallax";
 const std::string Shader::DirLightCnt = "dirLightCnt";
 const std::string Shader::SpotLightCnt = "spotLightCnt";
 const std::string Shader::PointLightCnt = "pointLightCnt";

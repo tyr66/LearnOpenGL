@@ -109,6 +109,8 @@ void Mesh::Draw(ShaderPtr& shader)
     //TODO 设置贴图
     unsigned int diffuse_id = 0;
     unsigned int specular_id = 0;
+    unsigned int normal_id = 0;
+    unsigned int parallax_id = 0;
 
     for (unsigned int i = 0; i < textures.size(); i++)
     {
@@ -123,6 +125,12 @@ void Mesh::Draw(ShaderPtr& shader)
             break;
         case TextureUsage::TEXTURE_USAGE_SPECULAR:
             name += Shader::SpecularTexturePrefix + std::to_string(specular_id++);
+            break;
+        case TextureUsage::TEXTURE_USAGE_NORMAL:
+                name += Shader::NormalTexturePrefix + std::to_string(normal_id++);
+            break;
+        case TextureUsage::TEXTURE_USAGE_PARALLAX:
+                name += Shader::ParallaxTexturePrefix + std::to_string(parallax_id++);
             break;
         default:
             assert(false);

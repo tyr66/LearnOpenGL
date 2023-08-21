@@ -13,7 +13,7 @@ public:
     static MeshPtr generateQuad();
     static MeshPtr generateCube();
     static MeshPtr generateInverseCube();
-    static MeshPtr generatePlane();
+    static MeshPtr generatePlane(bool isGenerateTangent = false);
     static MeshPtr generateSkyBox();
 };
 

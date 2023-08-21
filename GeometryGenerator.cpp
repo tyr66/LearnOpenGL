@@ -74,6 +74,7 @@ MeshPtr GeometryGenerator::generateInverseCube()
     layout.push<float>(3, 0);
     layout.push<float>(3, 1);
     layout.push<float>(2, 2);
+    layout.push<float>(3, 3);
 
     std::vector<TextureIndex> texIdxs;
 
@@ -149,13 +150,14 @@ MeshPtr GeometryGenerator::generateCube()
     layout.push<float>(3, 0);
     layout.push<float>(3, 1);
     layout.push<float>(2, 2);
+    layout.push<float>(3, 3);
 
     std::vector<TextureIndex> texIdxs;
 
     return MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(texIdxs), layout);
 }
 
-MeshPtr GeometryGenerator::generatePlane()
+MeshPtr GeometryGenerator::generatePlane(bool isGenerateTangent)
 {
     std::vector<Vertex> verts;
     std::vector<TextureIndex> texs;
@@ -167,11 +169,29 @@ MeshPtr GeometryGenerator::generatePlane()
     layout.push<float>(3, 0);
     layout.push<float>(3, 1);
     layout.push<float>(2, 2);
+    layout.push<float>(3, 3);
 
-    verts.push_back({-1.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,   0.0f, 0.0f});
-    verts.push_back({ 1.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f});
-    verts.push_back({-1.0f, 0.0f,  1.0f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f});
-    verts.push_back({ 1.0f, 0.0f,  1.0f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f});
+    Vertex v0 = { -1.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f };
+    Vertex v1 = { 1.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f};
+    Vertex v2 = {-1.0f, 0.0f,  1.0f,   0.0f, 1.0f, 0.0f,   0.0f, 0.0f};
+    Vertex v3 = { 1.0f, 0.0f,  1.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f}; 
+
+    if (isGenerateTangent) {
+		// 计算tangent
+		glm::vec3 e1 = v1.pos - v0.pos;
+		glm::vec3 e2 = v2.pos - v1.pos;
+
+		glm::vec2 t1 = v1.tex - v0.tex;
+		glm::vec2 t2 = v2.tex - v1.tex;
+
+		float factory = 1.0f / (t1.x * t2.y - t2.x * t1.y);
+
+		glm::vec3 tangent = (t2.y * factory * e1) + (-t1.y * factory * e2);
+
+		v3.tangent = v2.tangent = v1.tangent = v0.tangent = tangent;
+    }
+    
+    verts.push_back(v0); verts.push_back(v1); verts.push_back(v2); verts.push_back(v3);
 
     return MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(texs), layout);
 }
@@ -210,6 +230,7 @@ MeshPtr GeometryGenerator::generateQuad()
     layout.push<float>(3, 0);
     layout.push<float>(3, 1);
     layout.push<float>(2, 2);
+    layout.push<float>(3, 3);
 
     return MeshManager::CreateMesh(std::move(verts), std::move(indices), std::move(textures), layout);
 }
@@ -261,7 +282,7 @@ MeshPtr GeometryGenerator::generateSkyBox()
     layout.push<float>(3, 0);
     layout.push<float>(3, 1);
     layout.push<float>(2, 2);
-
+    layout.push<float>(3, 3);
 
     MeshPtr ptr = MeshManager::CreateMesh(verts, indices, textures, layout);
     return ptr;

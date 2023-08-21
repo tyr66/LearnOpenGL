@@ -21,22 +21,26 @@ enum TextureUsage
     TEXTURE_USAGE_FRAMEBUFFER = 3,
     TEXTURE_USAGE_SHADOWMAP = 4,
     TEXTURE_USAGE_SHADOWCUBEMAP = 5,
+    TEXTURE_USAGE_NORMAL = 6,
+    TEXTURE_USAGE_PARALLAX = 7,
 };
 
 struct Vertex{
 
     Vertex(){}
-    Vertex(float px, float py, float pz, float nx, float ny, float nz, float tx, float ty){
+    Vertex(float px, float py, float pz, float nx, float ny, float nz, float tx, float ty, float tanx = 0, float tany = 0, float tanz = 0){
         pos = glm::vec3(px, py, pz);
         normal = glm::vec3(nx, ny, nz);
         tex = glm::vec2(tx, ty);
+        tangent = glm::vec3(tanx, tany, tanz);
     }
 
     glm::vec3 pos;
     glm::vec3 normal;
     glm::vec2 tex;
-
+    glm::vec3 tangent;
 };
+
 
 struct TextureIndex
 {

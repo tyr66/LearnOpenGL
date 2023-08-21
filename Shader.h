@@ -84,6 +84,8 @@ public:
 public:
     static const char* DiffuseTexturePrefix;
     static const char* SpecularTexturePrefix;
+    static const char* NormalTexturePrefix;
+    static const char* ParallaxTexturePrefix;
 
     static const std::string DirLightCnt;
     static const std::string PointLightCnt;
@@ -98,6 +100,7 @@ private:
     static std::string GetDirectionLightPrefix(int idx);
     static std::string GetPointLightPrefix(int idx);
     static std::string GetSpotLightPrefix(int idx);
+    
 
     int getAndSetLocation(const std::string& name);
     int getAndSetLocation(const std::string&& name);
